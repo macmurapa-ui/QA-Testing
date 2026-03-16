@@ -4,6 +4,14 @@
  *
  * Headless, uses saved auth.json session.
  * Creates a new branch named "Mac 160326" in the HTM Clone admin.
+ *
+ * Default values for Branch Creation (use unless stated otherwise):
+ *   Business Type : Letting Agent
+ *   Phone Number  : random 11 digits
+ *   Address Line 1: 123 Test Street
+ *   Town or City  : Manchester
+ *   Post Code     : M13 9GS
+ *   County        : Lancashire
  */
 
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
@@ -53,9 +61,8 @@ if (rawProxy) {
   const landedUrl = page.url();
   console.log('      Landed on: ' + landedUrl);
 
-  const isLoginPage = landedUrl.includes('/login') || landedUrl.includes('accounts.google.com');
-  if (isLoginPage) {
-    console.log('ERROR: Session expired — still on login page. Please re-authenticate and update auth.json.');
+  if (landedUrl.includes('/login') || landedUrl.includes('accounts.google.com')) {
+    console.log('ERROR: Session expired. Please update auth.json and retry.');
     await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_session_expired.png` });
     await browser.close();
     process.exitCode = 1;
@@ -72,74 +79,43 @@ if (rawProxy) {
   await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_form_before.png`, fullPage: true });
   console.log('      Screenshot: 006_form_before.png');
 
-  // ── Step 3: Fill branch name ───────────────────────────────────────────────
-  console.log('\n[3/4] Filling branch name: "' + BRANCH_NAME + '"...');
+  // ── Step 3: Fill all required fields ──────────────────────────────────────
+  console.log('\n[3/4] Filling required fields...');
 
-  const nameSelectors = [
-    'input[name="branch[name]"]',
-    'input[id="branch_name"]',
-    'input[placeholder*="name" i]',
-    'input[name="name"]'
-  ];
+  // Branch Name
+  await page.locator('input[name="branch[name]"]').fill(BRANCH_NAME);
+  console.log('      Branch Name: ' + BRANCH_NAME);
 
-  let filled = false;
-  for (const selector of nameSelectors) {
-    const el = page.locator(selector);
-    if (await el.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await el.fill(BRANCH_NAME);
-      console.log('      Filled using: ' + selector);
-      filled = true;
-      break;
-    }
-  }
+  // Business Type — select "Letting Agent"
+  await page.locator('select[name="branch[business_type]"]').selectOption({ label: 'Letting Agent' });
+  console.log('      Business Type: Letting Agent');
 
-  if (!filled) {
-    // Dump all inputs for debugging
-    const inputs = await page.evaluate(() =>
-      [...document.querySelectorAll('input')].map(i => ({ name: i.name, id: i.id, type: i.type, placeholder: i.placeholder }))
-    );
-    console.log('      WARNING: Could not find branch name input. Inputs found:', JSON.stringify(inputs, null, 2));
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_form_debug.png`, fullPage: true });
-    await browser.close();
-    process.exitCode = 1;
-    return;
-  }
+  // Phone Number
+  await page.locator('input[name="branch[phone_number]"]').fill('07438725727');
+  console.log('      Phone Number: 07438725727');
+
+  // Address Line 1
+  await page.locator('input[name="branch[address_attributes][address_1]"]').fill('123 Test Street');
+  console.log('      Address Line 1: 123 Test Street');
+
+  // Town or City
+  await page.locator('input[name="branch[address_attributes][town]"]').fill('Manchester');
+  console.log('      Town or City: Manchester');
+
+  // Post Code
+  await page.locator('input[name="branch[address_attributes][post_code]"]').fill('M13 9GS');
+  console.log('      Post Code: M13 9GS');
+
+  // County
+  await page.locator('input[name="branch[address_attributes][county]"]').fill('Lancashire');
+  console.log('      County: Lancashire');
 
   await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_form_filled.png`, fullPage: true });
   console.log('      Screenshot: 006_form_filled.png');
 
   // ── Step 4: Submit ─────────────────────────────────────────────────────────
   console.log('\n[4/4] Submitting form...');
-
-  const submitSelectors = [
-    'input[type="submit"]',
-    'button[type="submit"]',
-    'button:has-text("Create")',
-    'button:has-text("Save")',
-    'button:has-text("Add")'
-  ];
-
-  let submitted = false;
-  for (const selector of submitSelectors) {
-    const el = page.locator(selector);
-    if (await el.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await el.click();
-      console.log('      Clicked: ' + selector);
-      submitted = true;
-      break;
-    }
-  }
-
-  if (!submitted) {
-    const buttons = await page.evaluate(() =>
-      [...document.querySelectorAll('button,input[type="submit"]')].map(b => ({ tag: b.tagName, type: b.type, text: b.innerText?.trim() }))
-    );
-    console.log('      WARNING: Could not find submit button. Buttons found:', JSON.stringify(buttons, null, 2));
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_no_submit.png`, fullPage: true });
-    await browser.close();
-    process.exitCode = 1;
-    return;
-  }
+  await page.locator('input[type="submit"]').click();
 
   await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
   await page.waitForTimeout(1500);
@@ -147,17 +123,19 @@ if (rawProxy) {
   const finalUrl = page.url();
   await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_result.png`, fullPage: true });
   console.log('      Screenshot: 006_result.png');
+  console.log('      Final URL: ' + finalUrl);
 
-  const isSuccess = finalUrl.includes('/branches/') && !finalUrl.includes('/new');
+  // Rails redirects away from /branches/new on successful create
+  const isSuccess = !finalUrl.includes('/new');
 
   console.log('\n═══════════════════════════════════════════════════════');
   if (isSuccess) {
-    console.log(' SUCCESS: Branch created!');
-    console.log(' Branch: ' + BRANCH_NAME);
+    console.log(' SUCCESS: Branch "' + BRANCH_NAME + '" created!');
     console.log(' URL: ' + finalUrl);
   } else {
-    console.log(' ? RESULT UNCLEAR - check 006_result.png');
+    console.log(' FAILED: Check 006_result.png for validation errors.');
     console.log(' URL: ' + finalUrl);
+    process.exitCode = 1;
   }
   console.log('═══════════════════════════════════════════════════════');
 
