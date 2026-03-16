@@ -2,21 +2,14 @@
  * HTM Clone - Test Run 006
  * Branch Creation: Mac 160326
  *
- * Option B: Headed browser - pauses for manual Google CAPTCHA/auth completion,
- * then automatically creates the branch and saves a fresh auth.json session.
- *
- * Usage:
- *   node htm_clone_006.js
- *
- * The browser window will open visibly. Complete the Google login when prompted.
- * The script will detect authentication and continue automatically.
+ * Headless, uses saved auth.json session.
+ * Creates a new branch named "Mac 160326" in the HTM Clone admin.
  */
 
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const path = require('path');
 
 const CLONE_URL = 'https://admin-clone.helpthemove.co.uk';
-const TARGET_ACCOUNT = 'mac.murapa@helpthemove.co.uk';
 const BRANCH_NAME = 'Mac 160326';
 const AUTH_PATH = '/home/user/QA-Testing/auth.json';
 const SCREENSHOT_DIR = path.dirname(__filename);
@@ -41,63 +34,47 @@ if (rawProxy) {
   console.log('───────────────────────────────────────────────────────');
 
   const browser = await chromium.launch({
-    headless: false,   // Headed so you can complete Google CAPTCHA manually
+    headless: true,
     proxy: proxyConfig,
-    args: ['--no-sandbox', '--disable-dev-shm-usage'],
-    slowMo: 100
+    args: ['--no-sandbox', '--disable-dev-shm-usage']
   });
 
   const context = await browser.newContext({
     ignoreHTTPSErrors: true,
-    viewport: { width: 1280, height: 900 }
+    viewport: { width: 1280, height: 900 },
+    storageState: AUTH_PATH
   });
 
   const page = await context.newPage();
 
-  // ── Step 1: Navigate to login ──────────────────────────────────────────────
-  console.log('\n[1/5] Navigating to HTM Clone login page...');
+  // ── Step 1: Verify session ─────────────────────────────────────────────────
+  console.log('\n[1/4] Verifying session via auth.json...');
   await page.goto(CLONE_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  console.log('      Browser window is now open.');
-  console.log('      Please click "Sign in with Google" and complete the');
-  console.log('      CAPTCHA / Google authentication in the browser window.');
-  console.log('      The script will continue automatically once you are logged in.');
-  console.log('      Waiting up to 3 minutes...');
+  const landedUrl = page.url();
+  console.log('      Landed on: ' + landedUrl);
 
-  // ── Step 2: Wait for successful login (up to 3 minutes) ───────────────────
-  try {
-    await page.waitForURL(
-      url => url.startsWith(CLONE_URL) && !url.includes('/login') && !url.includes('accounts.google.com'),
-      { timeout: 180000 }
-    );
-  } catch {
-    console.log('\nERROR: Timed out waiting for login. Please re-run and complete auth within 3 minutes.');
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_login_timeout.png` });
+  const isLoginPage = landedUrl.includes('/login') || landedUrl.includes('accounts.google.com');
+  if (isLoginPage) {
+    console.log('ERROR: Session expired — still on login page. Please re-authenticate and update auth.json.');
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_session_expired.png` });
     await browser.close();
     process.exitCode = 1;
     return;
   }
+  console.log('      Session valid.');
 
-  await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
-  await page.waitForTimeout(1000);
-  console.log('\n[2/5] Login detected! Saving fresh session...');
-
-  // Save fresh session so future headless scripts work
-  await context.storageState({ path: AUTH_PATH });
-  console.log('      auth.json updated.');
-
-  // ── Step 3: Navigate to new branch form ───────────────────────────────────
-  console.log('\n[3/5] Navigating to branch creation form...');
+  // ── Step 2: Navigate to new branch form ───────────────────────────────────
+  console.log('\n[2/4] Navigating to branch creation form...');
   await page.goto(`${CLONE_URL}/branches/new`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  await page.waitForTimeout(1500);
-  console.log(`      URL: ${page.url()}`);
+  await page.waitForTimeout(1000);
+  console.log('      URL: ' + page.url());
 
   await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_form_before.png`, fullPage: true });
   console.log('      Screenshot: 006_form_before.png');
 
-  // ── Step 4: Fill in branch name ────────────────────────────────────────────
-  console.log('\n[4/5] Filling in branch name: "' + BRANCH_NAME + '"...');
+  // ── Step 3: Fill branch name ───────────────────────────────────────────────
+  console.log('\n[3/4] Filling branch name: "' + BRANCH_NAME + '"...');
 
-  // Try common selectors for the branch name field
   const nameSelectors = [
     'input[name="branch[name]"]',
     'input[id="branch_name"]',
@@ -110,17 +87,19 @@ if (rawProxy) {
     const el = page.locator(selector);
     if (await el.isVisible({ timeout: 2000 }).catch(() => false)) {
       await el.fill(BRANCH_NAME);
-      console.log(`      Filled using selector: ${selector}`);
+      console.log('      Filled using: ' + selector);
       filled = true;
       break;
     }
   }
 
   if (!filled) {
-    console.log('      WARNING: Could not find branch name input with known selectors.');
-    console.log('      Taking screenshot for inspection...');
+    // Dump all inputs for debugging
+    const inputs = await page.evaluate(() =>
+      [...document.querySelectorAll('input')].map(i => ({ name: i.name, id: i.id, type: i.type, placeholder: i.placeholder }))
+    );
+    console.log('      WARNING: Could not find branch name input. Inputs found:', JSON.stringify(inputs, null, 2));
     await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_form_debug.png`, fullPage: true });
-    console.log('      Please inspect 006_form_debug.png and update selectors.');
     await browser.close();
     process.exitCode = 1;
     return;
@@ -129,8 +108,8 @@ if (rawProxy) {
   await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_form_filled.png`, fullPage: true });
   console.log('      Screenshot: 006_form_filled.png');
 
-  // ── Step 5: Submit form ────────────────────────────────────────────────────
-  console.log('\n[5/5] Submitting form...');
+  // ── Step 4: Submit ─────────────────────────────────────────────────────────
+  console.log('\n[4/4] Submitting form...');
 
   const submitSelectors = [
     'input[type="submit"]',
@@ -145,42 +124,37 @@ if (rawProxy) {
     const el = page.locator(selector);
     if (await el.isVisible({ timeout: 2000 }).catch(() => false)) {
       await el.click();
-      console.log(`      Clicked submit using selector: ${selector}`);
+      console.log('      Clicked: ' + selector);
       submitted = true;
       break;
     }
   }
 
   if (!submitted) {
-    console.log('      WARNING: Could not find submit button. Taking screenshot...');
+    const buttons = await page.evaluate(() =>
+      [...document.querySelectorAll('button,input[type="submit"]')].map(b => ({ tag: b.tagName, type: b.type, text: b.innerText?.trim() }))
+    );
+    console.log('      WARNING: Could not find submit button. Buttons found:', JSON.stringify(buttons, null, 2));
     await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_no_submit.png`, fullPage: true });
     await browser.close();
     process.exitCode = 1;
     return;
   }
 
-  // Wait for navigation/response after submit
   await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
   await page.waitForTimeout(1500);
 
   const finalUrl = page.url();
-  console.log(`      Final URL: ${finalUrl}`);
-
   await page.screenshot({ path: `${SCREENSHOT_DIR}/HTM_Clone_Screenshot_006_result.png`, fullPage: true });
   console.log('      Screenshot: 006_result.png');
 
-  // Check for success indicators
-  const pageText = await page.evaluate(() => document.body.innerText.substring(0, 300));
   const isSuccess = finalUrl.includes('/branches/') && !finalUrl.includes('/new');
-  const hasError = pageText.toLowerCase().includes('error') || pageText.toLowerCase().includes('invalid');
 
   console.log('\n═══════════════════════════════════════════════════════');
   if (isSuccess) {
-    console.log(' ✓ BRANCH CREATED SUCCESSFULLY');
+    console.log(' SUCCESS: Branch created!');
     console.log(' Branch: ' + BRANCH_NAME);
     console.log(' URL: ' + finalUrl);
-  } else if (hasError) {
-    console.log(' ✗ FORM SUBMISSION ERROR - check 006_result.png');
   } else {
     console.log(' ? RESULT UNCLEAR - check 006_result.png');
     console.log(' URL: ' + finalUrl);
