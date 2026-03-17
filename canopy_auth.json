@@ -1,0 +1,25 @@
+{
+  "cookies": [
+    {
+      "name": "_help_the_move_clone_cpy_session",
+      "value": "Kz4%2FA4jjwnwFlOQiIfUwZM0tQJ%2FUoS5Arx118xQmiPCZN5uz6X4hGkW0eDHLAIa1P1y48xbMPeKQTgLlR%2FouLFs%2Fk7AH0Cv0KgcWkK%2FuLojAShAcXZj3vd9v%2FGJ%2BkrxEvkuPRTesLNhfQe8SuSNE9oeVJUWpFbzpjg4oVMFyir6UsfVEtM8itU4i%2FUAuM0sOzudPFAhsbCveHVfnybQJq93Q%2BUfRi5rt9ndBOBZqac0F%2BnT%2BEgCk0WOH02b7HDEeNLmDtJprj1CU840esjhRU5RK%2FEmc1kY7NooAW3ItwRHBfCNyw2xF6W9hhMeqT94n7rHWgRPnpVWafQlpotiRmwENNenMJWD6w5v0ZgZPNDMdHXgxmTGNsEBSAlCWC%2FEFp3TtND5ehEvgMYMM8iq4l4iBZ6Rs5I1cf%2BA7faY8GKGKCzuk7gLAcriVXJ8t6JoE4s%2FQRRY2GHiEaYCZ%2Bn1kJSaTjC8aiarLOv96oWtvoIWge6L9ZIEO0dzC7Slysg%2FVTKBSxdnEMUfv1N9Ug%2FMMfI0smGjH%2BVEpSo9sRETb2lw%2BG0Kux7htTTAIoP3L207dGq4N0FM3n1c2ChiNc9M9%2FlyE90BcExTvISsFzUoQsshDtOv1YKYhEGGkN11GtqGzXKm%2Ff1ST3nTH6HUwCFfAgGHa1IAsxTo7SGyw9GmtzlF%2BFnUO%2B3iG9fpRvsTO4ubIuqiQQBNW7vKoN0UCg%2BXGZseGe0LY7A%3D%3D--PeI2RH3Fkk6YuBSf--i5oKTpVp2obvGUWrHfEJuQ%3D%3D",
+      "domain": ".helpthemove.co.uk",
+      "path": "/",
+      "expires": 1773742620.451891,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "__Host-GAPS",
+      "value": "1:XbKfoCbz2m5xhtygAI5ryTXqoaURcg:6JYA-r1d6zji0tpl",
+      "domain": "accounts.google.com",
+      "path": "/",
+      "expires": 1808300820.844933,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}
