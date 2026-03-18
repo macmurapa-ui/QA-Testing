@@ -162,50 +162,19 @@ async function refreshAuth() {
   if (!ok) { console.log('ERROR: Session still invalid. Exiting.'); await browser.close(); process.exitCode = 1; return; }
   console.log('      Headless session confirmed.');
 
-  // ── Step 2: Create Branch ──────────────────────────────────────────────────
-  console.log('\n[2/5] Creating branch "' + BRANCH_NAME + '"...');
-  await page.goto(`${CLONE_URL}/branches/new`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  await page.waitForTimeout(1000);
-  await page.screenshot({ path: `${SS_DIR}/007_branch_form.png`, fullPage: true });
-  console.log('      Screenshot: 007_branch_form.png');
+  // ── Step 2: Find or Create Branch ─────────────────────────────────────────
+  // IMPORTANT: Check if branch already exists before creating to avoid duplicates.
+  // Note: POST /branches redirects to /admins/:user_id (the logged-in admin page),
+  //       not the new branch. This is a known app pattern — always search for the
+  //       branch by name after creation (or instead of creation if already present).
+  console.log('\n[2/5] Checking if branch "' + BRANCH_NAME + '" already exists...');
 
-  await page.locator('input[name="branch[name]"]').fill(BRANCH_NAME);
-  await page.locator('select[name="branch[business_type]"]').selectOption({ label: 'Letting Agent' });
-  await page.locator('input[name="branch[phone_number]"]').fill('07561834920');
-  await page.locator('input[name="branch[address_attributes][address_1]"]').fill('123 Test Street');
-  await page.locator('input[name="branch[address_attributes][town]"]').fill('Manchester');
-  await page.locator('input[name="branch[address_attributes][post_code]"]').fill('M13 9GS');
-  await page.locator('input[name="branch[address_attributes][county]"]').fill('Lancashire');
-
-  await page.screenshot({ path: `${SS_DIR}/007_branch_form_filled.png`, fullPage: true });
-  console.log('      Screenshot: 007_branch_form_filled.png');
-
-  await page.locator('input[type="submit"]').click();
-  await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
-  await page.waitForTimeout(1500);
-
-  const postCreateUrl = page.url();
-  console.log('      Post-creation URL: ' + postCreateUrl);
-
-  if (postCreateUrl.includes('/branches/new')) {
-    await page.screenshot({ path: `${SS_DIR}/007_branch_error.png`, fullPage: true });
-    console.log('ERROR: Branch creation failed. Check 007_branch_error.png');
-    await browser.close(); process.exitCode = 1; return;
-  }
-  console.log('      Branch submitted successfully.');
-
-  // ── Step 3: Find the created branch ────────────────────────────────────────
-  console.log('\n[3/5] Finding branch "' + BRANCH_NAME + '" in /branches...');
-
-  // Try search first — branches search param is "q"
   await page.goto(`${CLONE_URL}/branches?q=${encodeURIComponent(BRANCH_NAME)}`, {
     waitUntil: 'domcontentloaded', timeout: 30000
   });
   await page.waitForTimeout(800);
-  await page.screenshot({ path: `${SS_DIR}/007_branch_search.png`, fullPage: true });
 
-  let actualBranchUrl = await page.evaluate((name) => {
-    // Look for a row whose text contains the branch name exactly
+  let existingBranchUrl = await page.evaluate((name) => {
     const rows = Array.from(document.querySelectorAll('table tbody tr, tr'));
     for (const row of rows) {
       if (row.innerText.includes(name)) {
@@ -213,17 +182,63 @@ async function refreshAuth() {
         if (a) return a.href;
       }
     }
-    // Fallback: any link whose text matches
     const links = Array.from(document.querySelectorAll('a[href*="/branches/"]'));
     const match = links.find(a => a.innerText.trim() === name);
     return match ? match.href : null;
   }, BRANCH_NAME);
 
-  // If not found in search results, try the full /branches list (first page)
+  if (existingBranchUrl) {
+    const existingId = (existingBranchUrl.match(/\/branches\/(\d+)/) || [])[1];
+    console.log('      Branch already exists (ID: ' + existingId + ') — skipping creation.');
+    console.log('      URL: ' + existingBranchUrl);
+  } else {
+    console.log('      Not found — creating branch "' + BRANCH_NAME + '"...');
+    await page.goto(`${CLONE_URL}/branches/new`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: `${SS_DIR}/007_branch_form.png`, fullPage: true });
+    console.log('      Screenshot: 007_branch_form.png');
+
+    await page.locator('input[name="branch[name]"]').fill(BRANCH_NAME);
+    await page.locator('select[name="branch[business_type]"]').selectOption({ label: 'Letting Agent' });
+    await page.locator('input[name="branch[phone_number]"]').fill('07561834920');
+    await page.locator('input[name="branch[address_attributes][address_1]"]').fill('123 Test Street');
+    await page.locator('input[name="branch[address_attributes][town]"]').fill('Manchester');
+    await page.locator('input[name="branch[address_attributes][post_code]"]').fill('M13 9GS');
+    await page.locator('input[name="branch[address_attributes][county]"]').fill('Lancashire');
+
+    await page.screenshot({ path: `${SS_DIR}/007_branch_form_filled.png`, fullPage: true });
+    console.log('      Screenshot: 007_branch_form_filled.png');
+
+    await page.locator('input[type="submit"]').click();
+    await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
+    await page.waitForTimeout(1500);
+
+    // App redirects to /admins/:user_id after branch creation — not the branch page.
+    // Re-search for the branch by name to get the real branch ID.
+    const postCreateUrl = page.url();
+    console.log('      Post-creation redirect: ' + postCreateUrl + ' (expected: /admins/:id)');
+
+    if (postCreateUrl.includes('/branches/new')) {
+      await page.screenshot({ path: `${SS_DIR}/007_branch_error.png`, fullPage: true });
+      console.log('ERROR: Branch creation failed (still on /new). Check 007_branch_error.png');
+      await browser.close(); process.exitCode = 1; return;
+    }
+    console.log('      Branch submitted. Re-searching by name...');
+  }
+
+  // ── Step 3: Locate the branch and navigate to its page ────────────────────
+  console.log('\n[3/5] Locating branch "' + BRANCH_NAME + '"...');
+
+  let actualBranchUrl = existingBranchUrl || null;
+
   if (!actualBranchUrl) {
-    console.log('      Not found in search results — scanning /branches list...');
-    await page.goto(`${CLONE_URL}/branches`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    // Re-search after creation (post-creation redirect doesn't give us the branch URL)
+    await page.goto(`${CLONE_URL}/branches?q=${encodeURIComponent(BRANCH_NAME)}`, {
+      waitUntil: 'domcontentloaded', timeout: 30000
+    });
     await page.waitForTimeout(800);
+    await page.screenshot({ path: `${SS_DIR}/007_branch_search.png`, fullPage: true });
+
     actualBranchUrl = await page.evaluate((name) => {
       const rows = Array.from(document.querySelectorAll('table tbody tr, tr'));
       for (const row of rows) {
@@ -241,7 +256,6 @@ async function refreshAuth() {
   if (!actualBranchUrl) {
     await page.screenshot({ path: `${SS_DIR}/007_branch_not_found.png`, fullPage: true });
     console.log('ERROR: Could not locate branch "' + BRANCH_NAME + '" in /branches.');
-    console.log('       Check 007_branch_not_found.png — branch may require pagination.');
     await browser.close(); process.exitCode = 1; return;
   }
 
