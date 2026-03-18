@@ -4,12 +4,16 @@
  *
  * Steps:
  *   [1/5] Verify session via auth.json (refresh headed if expired)
- *   [2/5] Find or create branch "Mac DDMMYY" (today's date — one per day)
- *   [3/5] Find the branch in /branches and navigate to it
+ *   [2/5] Determine next branch name (Mac N[DDMMYY]) and create it
+ *   [3/5] Find the created branch in /branches and navigate to it
  *   [4/5] Navigate to Add Landlord form (/branches/:id/landlords/new)
  *   [5/5] Fill and submit the landlord form — verify success
  *
- * Branch naming convention: Mac DDMMYY (e.g. Mac 180326 = 18th Mar 2026)
+ * Branch naming convention: Mac N[DDMMYY]
+ *   N = sequential count of branches created today (1, 2, 3 ...)
+ *   e.g. 1st branch on 18 Mar 2026 → Mac 1180326
+ *        2nd branch on 18 Mar 2026 → Mac 2180326
+ *
  * Landlord name: randomly generated on each run
  *
  * Default branch values:
@@ -24,13 +28,29 @@
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const path = require('path');
 
-// ── Branch name: Mac + today's date in DDMMYY ─────────────────────────────────
-function todaysBranchName() {
+// ── Date suffix helper: DDMMYY ─────────────────────────────────────────────────
+function dateSuffix() {
   const now = new Date();
   const dd  = String(now.getDate()).padStart(2, '0');
   const mm  = String(now.getMonth() + 1).padStart(2, '0');
   const yy  = String(now.getFullYear()).slice(-2);
-  return `Mac ${dd}${mm}${yy}`;
+  return `${dd}${mm}${yy}`;
+}
+
+// ── Next sequential branch name: counts Mac N[DDMMYY] branches for today ───────
+// Searches /branches for today's suffix, counts matches, returns Mac [N+1]DDMMYY
+async function nextBranchName(page, cloneUrl) {
+  const suffix = dateSuffix();
+  const pattern = new RegExp('^Mac \\d+' + suffix + '$');
+  await page.goto(`${cloneUrl}/branches?q=${encodeURIComponent(suffix)}`, {
+    waitUntil: 'domcontentloaded', timeout: 30000
+  });
+  await page.waitForTimeout(600);
+  const count = await page.evaluate((pat) => {
+    const links = Array.from(document.querySelectorAll('a[href*="/branches/"]'));
+    return links.filter(a => new RegExp(pat).test(a.innerText.trim())).length;
+  }, pattern.source);
+  return `Mac ${count + 1}${suffix}`;
 }
 
 // ── Random landlord name ───────────────────────────────────────────────────────
@@ -54,10 +74,9 @@ const landlordTitle = pick(TITLES);
 const landlordFirst = pick(FIRST_NAMES);
 const landlordLast  = pick(LAST_NAMES);
 
-const CLONE_URL   = 'https://admin-clone.helpthemove.co.uk';
-const BRANCH_NAME = todaysBranchName();
-const AUTH_PATH   = '/home/user/QA-Testing/auth.json';
-const SS_DIR      = path.dirname(__filename);
+const CLONE_URL = 'https://admin-clone.helpthemove.co.uk';
+const AUTH_PATH = '/home/user/QA-Testing/auth.json';
+const SS_DIR    = path.dirname(__filename);
 
 // Landlord test data — randomly generated each run
 const LANDLORD = {
@@ -154,7 +173,6 @@ async function refreshAuth() {
 (async () => {
   console.log('═══════════════════════════════════════════════════════');
   console.log(' HTM Clone - Test Run 007: Landlord Creation');
-  console.log(' Branch  : ' + BRANCH_NAME);
   console.log(' Landlord: ' + LANDLORD.title + ' ' + LANDLORD.first_name + ' ' + LANDLORD.last_name);
   console.log('═══════════════════════════════════════════════════════');
 
@@ -179,24 +197,60 @@ async function refreshAuth() {
   const context  = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1280, height: 900 }, storageState: AUTH_PATH });
   const page     = await context.newPage();
 
-  // Final sanity check
   const ok = await isSessionValid(page);
   if (!ok) { console.log('ERROR: Session still invalid. Exiting.'); await browser.close(); process.exitCode = 1; return; }
   console.log('      Headless session confirmed.');
 
-  // ── Step 2: Find or Create Branch ─────────────────────────────────────────
-  // IMPORTANT: Check if branch already exists before creating to avoid duplicates.
-  // Note: POST /branches redirects to /admins/:user_id (the logged-in admin page),
-  //       not the new branch. This is a known app pattern — always search for the
-  //       branch by name after creation (or instead of creation if already present).
-  console.log('\n[2/5] Checking if branch "' + BRANCH_NAME + '" already exists...');
+  // ── Step 2: Determine next branch name and create it ──────────────────────
+  // Convention: Mac N[DDMMYY] — N auto-increments by counting today's branches.
+  // Each test run always creates a fresh uniquely-named branch.
+  // Note: POST /branches redirects to /admins/:user_id (known app pattern) —
+  //       the real branch URL is found by searching /branches by name afterwards.
+  console.log('\n[2/5] Determining next branch name for today...');
+  const BRANCH_NAME = await nextBranchName(page, CLONE_URL);
+  console.log('      Branch name: ' + BRANCH_NAME);
+
+  await page.goto(`${CLONE_URL}/branches/new`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: `${SS_DIR}/007_branch_form.png`, fullPage: true });
+  console.log('      Screenshot: 007_branch_form.png');
+
+  await page.locator('input[name="branch[name]"]').fill(BRANCH_NAME);
+  await page.locator('select[name="branch[business_type]"]').selectOption({ label: 'Letting Agent' });
+  await page.locator('input[name="branch[phone_number]"]').fill('07561834920');
+  await page.locator('input[name="branch[address_attributes][address_1]"]').fill('123 Test Street');
+  await page.locator('input[name="branch[address_attributes][town]"]').fill('Manchester');
+  await page.locator('input[name="branch[address_attributes][post_code]"]').fill('M13 9GS');
+  await page.locator('input[name="branch[address_attributes][county]"]').fill('Lancashire');
+
+  await page.screenshot({ path: `${SS_DIR}/007_branch_form_filled.png`, fullPage: true });
+  console.log('      Screenshot: 007_branch_form_filled.png');
+
+  await page.locator('input[type="submit"]').click();
+  await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
+  await page.waitForTimeout(1500);
+
+  const postCreateUrl = page.url();
+  console.log('      Post-creation redirect: ' + postCreateUrl + ' (expected: /admins/:id)');
+
+  if (postCreateUrl.includes('/branches/new')) {
+    await page.screenshot({ path: `${SS_DIR}/007_branch_error.png`, fullPage: true });
+    console.log('ERROR: Branch creation failed (still on /new). Check 007_branch_error.png');
+    await browser.close(); process.exitCode = 1; return;
+  }
+  console.log('      Branch "' + BRANCH_NAME + '" submitted successfully.');
+
+  // ── Step 3: Locate the branch and navigate to its page ────────────────────
+  // Post-creation redirect goes to /admins/:user_id — search by name to get real URL.
+  console.log('\n[3/5] Locating branch "' + BRANCH_NAME + '"...');
 
   await page.goto(`${CLONE_URL}/branches?q=${encodeURIComponent(BRANCH_NAME)}`, {
     waitUntil: 'domcontentloaded', timeout: 30000
   });
   await page.waitForTimeout(800);
+  await page.screenshot({ path: `${SS_DIR}/007_branch_search.png`, fullPage: true });
 
-  let existingBranchUrl = await page.evaluate((name) => {
+  let actualBranchUrl = await page.evaluate((name) => {
     const rows = Array.from(document.querySelectorAll('table tbody tr, tr'));
     for (const row of rows) {
       if (row.innerText.includes(name)) {
@@ -208,72 +262,6 @@ async function refreshAuth() {
     const match = links.find(a => a.innerText.trim() === name);
     return match ? match.href : null;
   }, BRANCH_NAME);
-
-  if (existingBranchUrl) {
-    const existingId = (existingBranchUrl.match(/\/branches\/(\d+)/) || [])[1];
-    console.log('      Branch already exists (ID: ' + existingId + ') — skipping creation.');
-    console.log('      URL: ' + existingBranchUrl);
-  } else {
-    console.log('      Not found — creating branch "' + BRANCH_NAME + '"...');
-    await page.goto(`${CLONE_URL}/branches/new`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(1000);
-    await page.screenshot({ path: `${SS_DIR}/007_branch_form.png`, fullPage: true });
-    console.log('      Screenshot: 007_branch_form.png');
-
-    await page.locator('input[name="branch[name]"]').fill(BRANCH_NAME);
-    await page.locator('select[name="branch[business_type]"]').selectOption({ label: 'Letting Agent' });
-    await page.locator('input[name="branch[phone_number]"]').fill('07561834920');
-    await page.locator('input[name="branch[address_attributes][address_1]"]').fill('123 Test Street');
-    await page.locator('input[name="branch[address_attributes][town]"]').fill('Manchester');
-    await page.locator('input[name="branch[address_attributes][post_code]"]').fill('M13 9GS');
-    await page.locator('input[name="branch[address_attributes][county]"]').fill('Lancashire');
-
-    await page.screenshot({ path: `${SS_DIR}/007_branch_form_filled.png`, fullPage: true });
-    console.log('      Screenshot: 007_branch_form_filled.png');
-
-    await page.locator('input[type="submit"]').click();
-    await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
-    await page.waitForTimeout(1500);
-
-    // App redirects to /admins/:user_id after branch creation — not the branch page.
-    // Re-search for the branch by name to get the real branch ID.
-    const postCreateUrl = page.url();
-    console.log('      Post-creation redirect: ' + postCreateUrl + ' (expected: /admins/:id)');
-
-    if (postCreateUrl.includes('/branches/new')) {
-      await page.screenshot({ path: `${SS_DIR}/007_branch_error.png`, fullPage: true });
-      console.log('ERROR: Branch creation failed (still on /new). Check 007_branch_error.png');
-      await browser.close(); process.exitCode = 1; return;
-    }
-    console.log('      Branch submitted. Re-searching by name...');
-  }
-
-  // ── Step 3: Locate the branch and navigate to its page ────────────────────
-  console.log('\n[3/5] Locating branch "' + BRANCH_NAME + '"...');
-
-  let actualBranchUrl = existingBranchUrl || null;
-
-  if (!actualBranchUrl) {
-    // Re-search after creation (post-creation redirect doesn't give us the branch URL)
-    await page.goto(`${CLONE_URL}/branches?q=${encodeURIComponent(BRANCH_NAME)}`, {
-      waitUntil: 'domcontentloaded', timeout: 30000
-    });
-    await page.waitForTimeout(800);
-    await page.screenshot({ path: `${SS_DIR}/007_branch_search.png`, fullPage: true });
-
-    actualBranchUrl = await page.evaluate((name) => {
-      const rows = Array.from(document.querySelectorAll('table tbody tr, tr'));
-      for (const row of rows) {
-        if (row.innerText.includes(name)) {
-          const a = row.querySelector('a[href*="/branches/"]');
-          if (a) return a.href;
-        }
-      }
-      const links = Array.from(document.querySelectorAll('a[href*="/branches/"]'));
-      const match = links.find(a => a.innerText.trim() === name);
-      return match ? match.href : null;
-    }, BRANCH_NAME);
-  }
 
   if (!actualBranchUrl) {
     await page.screenshot({ path: `${SS_DIR}/007_branch_not_found.png`, fullPage: true });
