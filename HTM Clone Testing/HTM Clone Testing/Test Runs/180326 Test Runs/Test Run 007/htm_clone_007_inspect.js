@@ -243,80 +243,125 @@ async function refreshAuth() {
   }
   console.log('      Branch created! URL: ' + branchUrl);
 
-  // ── Step 4: Find Landlord section on branch page ───────────────────────────
-  console.log('\n[4/5] Inspecting branch page for Landlord section...');
-  await page.screenshot({ path: `${SS_DIR}/007_inspect_branch_page.png`, fullPage: true });
+  // ── Step 4: Find the created branch in /branches list ────────────────────────
+  // Note: post-creation redirects to /admins/:user_id (the logged-in user page),
+  // not the branch page. We must search for the branch by name.
+  console.log('\n[4/5] Finding branch "' + BRANCH_NAME + '" in /branches...');
 
-  // Extract all links on the branch page to find landlords path
-  const allLinks = await page.evaluate(() =>
+  await page.goto(`${CLONE_URL}/branches?q=${encodeURIComponent(BRANCH_NAME)}`, {
+    waitUntil: 'domcontentloaded', timeout: 30000
+  });
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${SS_DIR}/007_inspect_branch_search.png`, fullPage: true });
+  console.log('      Screenshot: 007_inspect_branch_search.png');
+
+  // Find the branch link in the results table
+  const branchRowLink = await page.evaluate((name) => {
+    const links = Array.from(document.querySelectorAll('a'));
+    const match = links.find(a => a.innerText.trim() === name || a.href.includes('/branches/'));
+    // Also look for any row containing the branch name
+    const rows = Array.from(document.querySelectorAll('table tbody tr, tr'));
+    for (const row of rows) {
+      if (row.innerText.includes(name)) {
+        const a = row.querySelector('a[href*="/branches/"]');
+        if (a) return { text: a.innerText.trim(), href: a.href };
+      }
+    }
+    // Fallback: first /branches/:id link on page
+    const branchLink = links.find(a => a.href.match(/\/branches\/\d+/));
+    return branchLink ? { text: branchLink.innerText.trim(), href: branchLink.href } : null;
+  }, BRANCH_NAME);
+
+  console.log('      Branch link found: ' + JSON.stringify(branchRowLink));
+
+  // Also dump all page links containing /branches/ for debug
+  const allBranchLinks = await page.evaluate(() =>
     Array.from(document.querySelectorAll('a'))
       .map(a => ({ text: a.innerText.trim().replace(/\s+/g, ' '), href: a.href }))
-      .filter(l => l.text && l.href)
+      .filter(l => l.href.includes('/branches/'))
   );
+  console.log('      All /branches/ links on search page:');
+  allBranchLinks.slice(0, 10).forEach(l => console.log(`        "${l.text}" → ${l.href}`));
 
-  console.log('\n      All links on branch page:');
-  allLinks.forEach(l => console.log(`        "${l.text}" → ${l.href}`));
+  let actualBranchUrl = branchRowLink ? branchRowLink.href : null;
+  let branchId = null;
 
-  const landlordLinks = allLinks.filter(l =>
-    l.text.toLowerCase().includes('landlord') ||
-    l.href.toLowerCase().includes('landlord')
-  );
+  if (actualBranchUrl) {
+    const m = actualBranchUrl.match(/\/branches\/(\d+)/);
+    branchId = m ? m[1] : null;
+    console.log('      Actual branch URL: ' + actualBranchUrl);
+    console.log('      Branch ID: ' + branchId);
 
-  console.log('\n      Landlord-related links found:');
-  if (landlordLinks.length === 0) {
-    console.log('        NONE — trying common URL patterns...');
+    // Navigate to the branch show page
+    await page.goto(actualBranchUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `${SS_DIR}/007_inspect_branch_page.png`, fullPage: true });
+    console.log('      Screenshot: 007_inspect_branch_page.png');
+
+    // Dump all links on branch page for analysis
+    const branchPageLinks = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('a'))
+        .map(a => ({ text: a.innerText.trim().replace(/\s+/g, ' '), href: a.href }))
+        .filter(l => l.text && l.href && (
+          l.href.includes('landlord') || l.text.toLowerCase().includes('landlord') ||
+          l.href.includes('/new') || l.text.toLowerCase().includes('new')
+        ))
+    );
+    console.log('      New/Landlord links on branch page:');
+    branchPageLinks.forEach(l => console.log(`        "${l.text}" → ${l.href}`));
   } else {
-    landlordLinks.forEach(l => console.log(`        "${l.text}" → ${l.href}`));
+    console.log('      WARNING: Could not locate branch in search results.');
   }
 
   // ── Step 5: Navigate to Landlord creation form and inspect fields ──────────
   console.log('\n[5/5] Navigating to Landlord creation form...');
 
-  // Extract branch ID from URL (e.g. /branches/123 → 123)
-  const branchIdMatch = branchUrl.match(/\/branches\/(\d+)/);
-  const branchId = branchIdMatch ? branchIdMatch[1] : null;
+  // Try URL candidates in priority order
+  const landlordCandidates = [
+    branchId ? `${CLONE_URL}/branches/${branchId}/landlords/new` : null,
+    `${CLONE_URL}/landlords/new`,
+  ].filter(Boolean);
 
-  let landlordFormUrl = null;
+  // Also check /landlords index for a "New" button
+  console.log('      Checking /landlords index...');
+  await page.goto(`${CLONE_URL}/landlords`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${SS_DIR}/007_inspect_landlords_index.png`, fullPage: true });
 
-  if (landlordLinks.length > 0) {
-    // Try the first landlord link found, look for "new" or "add"
-    const newLandlordLink = landlordLinks.find(l =>
-      l.href.includes('/new') || l.text.toLowerCase().includes('new') || l.text.toLowerCase().includes('add')
-    ) || landlordLinks[0];
-    landlordFormUrl = newLandlordLink.href;
-  } else if (branchId) {
-    // Try common Rails patterns
-    const candidates = [
-      `${CLONE_URL}/branches/${branchId}/landlords/new`,
-      `${CLONE_URL}/landlords/new?branch_id=${branchId}`,
-      `${CLONE_URL}/landlords/new`,
-    ];
-    for (const url of candidates) {
-      console.log(`      Trying: ${url}`);
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-      const is404 = await page.evaluate(() =>
-        document.body.innerText.includes("doesn't exist") ||
-        document.body.innerText.includes('404') ||
-        document.body.innerText.includes('No route matches')
-      );
-      if (!is404) {
-        landlordFormUrl = url;
-        console.log('      Found form at: ' + url);
-        break;
-      }
-      console.log('      Not found at: ' + url);
-    }
+  const indexPageText = await page.evaluate(() => document.body.innerText.substring(0, 300));
+  console.log('      /landlords page preview:\n' + indexPageText);
+
+  const indexNewLink = await page.evaluate(() => {
+    const links = Array.from(document.querySelectorAll('a'));
+    const found = links.find(a =>
+      a.href.includes('/landlords/new') ||
+      a.innerText.trim().toLowerCase().includes('new landlord') ||
+      a.innerText.trim().toLowerCase() === 'new'
+    );
+    return found ? { text: found.innerText.trim(), href: found.href } : null;
+  });
+
+  if (indexNewLink) {
+    console.log('      Found new landlord link on index: ' + JSON.stringify(indexNewLink));
+    landlordCandidates.unshift(indexNewLink.href);
   }
 
-  if (!landlordFormUrl) {
-    // Last resort: navigate to /landlords
-    console.log('      Trying /landlords index...');
-    await page.goto(`${CLONE_URL}/landlords`, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    const pageText = await page.evaluate(() => document.body.innerText.substring(0, 500));
-    console.log('      /landlords page text:\n' + pageText);
-    await page.screenshot({ path: `${SS_DIR}/007_inspect_landlords_index.png`, fullPage: true });
-  } else {
-    await page.goto(landlordFormUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+  let landlordFormUrl = null;
+  for (const url of landlordCandidates) {
+    console.log('      Trying: ' + url);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.waitForTimeout(500);
+    const is404 = await page.evaluate(() =>
+      document.body.innerText.includes("doesn't exist") ||
+      document.body.innerText.includes('404') ||
+      document.body.innerText.includes('No route matches')
+    );
+    if (!is404) {
+      landlordFormUrl = url;
+      console.log('      ✓ Form found at: ' + url);
+      break;
+    }
+    console.log('      ✗ Not found: ' + url);
   }
 
   await page.waitForTimeout(1000);
