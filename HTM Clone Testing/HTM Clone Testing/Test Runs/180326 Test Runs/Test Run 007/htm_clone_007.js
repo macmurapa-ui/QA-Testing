@@ -1,49 +1,71 @@
 /**
  * HTM Clone - Test Run 007
- * Landlord Creation: Mac 180326
+ * Landlord Creation
  *
  * Steps:
  *   [1/5] Verify session via auth.json (refresh headed if expired)
- *   [2/5] Create Branch "Mac 180326"
- *   [3/5] Find the created branch in /branches and navigate to it
+ *   [2/5] Find or create branch "Mac DDMMYY" (today's date — one per day)
+ *   [3/5] Find the branch in /branches and navigate to it
  *   [4/5] Navigate to Add Landlord form (/branches/:id/landlords/new)
  *   [5/5] Fill and submit the landlord form — verify success
  *
- * Default values:
- *   Branch:
- *     Business Type : Letting Agent
- *     Phone Number  : 07561834920
- *     Address Line 1: 123 Test Street
- *     Town or City  : Manchester
- *     Post Code     : M13 9GS
- *     County        : Lancashire
+ * Branch naming convention: Mac DDMMYY (e.g. Mac 180326 = 18th Mar 2026)
+ * Landlord name: randomly generated on each run
  *
- *   Landlord:
- *     Title         : Mr
- *     First Name    : Thomas
- *     Last Name     : Hargreaves
- *     Email         : thomas.hargreaves@testemail.co.uk
- *     Phone         : 07823164752
- *     Type          : Individual
- *     Billing Type  : Agent Branch Address
- *     Billing Pref  : Email
+ * Default branch values:
+ *   Business Type : Letting Agent
+ *   Phone Number  : 07561834920
+ *   Address Line 1: 123 Test Street
+ *   Town or City  : Manchester
+ *   Post Code     : M13 9GS
+ *   County        : Lancashire
  */
 
 const { chromium } = require('/opt/node22/lib/node_modules/playwright');
 const path = require('path');
 
+// ── Branch name: Mac + today's date in DDMMYY ─────────────────────────────────
+function todaysBranchName() {
+  const now = new Date();
+  const dd  = String(now.getDate()).padStart(2, '0');
+  const mm  = String(now.getMonth() + 1).padStart(2, '0');
+  const yy  = String(now.getFullYear()).slice(-2);
+  return `Mac ${dd}${mm}${yy}`;
+}
+
+// ── Random landlord name ───────────────────────────────────────────────────────
+const FIRST_NAMES = [
+  'James', 'Oliver', 'Harry', 'George', 'Charlie', 'Jack', 'William', 'Henry',
+  'Edward', 'Samuel', 'Leo', 'Arthur', 'Freddie', 'Alfie', 'Noah', 'Benjamin',
+  'Sarah', 'Emma', 'Olivia', 'Charlotte', 'Amelia', 'Lily', 'Emily', 'Alice',
+  'Grace', 'Ella', 'Chloe', 'Sophie', 'Hannah', 'Ruby', 'Jessica', 'Victoria'
+];
+const LAST_NAMES = [
+  'Smith', 'Jones', 'Williams', 'Taylor', 'Brown', 'Davies', 'Evans', 'Wilson',
+  'Thomas', 'Roberts', 'Johnson', 'Lewis', 'Walker', 'Robinson', 'Wood', 'Thompson',
+  'White', 'Watson', 'Jackson', 'Wright', 'Green', 'Harris', 'Cooper', 'King',
+  'Martin', 'Clarke', 'Morgan', 'Hughes', 'Edwards', 'Hill', 'Moore', 'Hall'
+];
+const TITLES = ['Mr', 'Mrs', 'Miss', 'Ms', 'Dr'];
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+const landlordTitle = pick(TITLES);
+const landlordFirst = pick(FIRST_NAMES);
+const landlordLast  = pick(LAST_NAMES);
+
 const CLONE_URL   = 'https://admin-clone.helpthemove.co.uk';
-const BRANCH_NAME = 'Mac 180326';
+const BRANCH_NAME = todaysBranchName();
 const AUTH_PATH   = '/home/user/QA-Testing/auth.json';
 const SS_DIR      = path.dirname(__filename);
 
-// Landlord test data
+// Landlord test data — randomly generated each run
 const LANDLORD = {
-  title:      'Mr',
-  first_name: 'Thomas',
-  last_name:  'Hargreaves',
-  email:      'thomas.hargreaves@testemail.co.uk',
-  phone:      '07823164752'
+  title:      landlordTitle,
+  first_name: landlordFirst,
+  last_name:  landlordLast,
+  email:      `${landlordFirst.toLowerCase()}.${landlordLast.toLowerCase()}@testlandlord.co.uk`,
+  phone:      '07' + String(Math.floor(Math.random() * 900000000) + 100000000)
 };
 
 const rawProxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || '';
