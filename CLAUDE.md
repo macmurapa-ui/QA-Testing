@@ -340,6 +340,16 @@ Base URL: `https://api.helpthemove.co.uk/partner/`
 Auth: Bearer token — `Authorization: Bearer API_TOKEN`
 Environments: staging, clone, production (separate tokens per env)
 
+### API Keys (Clone Environments)
+| Environment | API Key |
+|-------------|---------|
+| Homelet-Clone | `mO4b6QLfY9zryWt6w3O6aCmIiGyhxKPS` |
+| Clone 1 | `6frd3GwSoJ7KuCWR3MCvN3NpCX17hpzQ` |
+| Clone 2 | `FtlmkeTrh3RangyCBZ1MMfnYchMOEwCs` |
+| Clone 3 | `XL0xalQyEe6yTXvpKWNGdtNYKyOUeUFG` |
+| Clone 4 | `dHK5j5JLVvrOm1o1RXwvhpTk7LJLVdov` |
+| Clone 5 | `06aFIhD8CGejEJQ4ocSEnbfd2cbqyLsW` |
+
 ### 15.1 What is a Move?
 - **Move-Out**: tenancy ends, property becomes empty (`submission_type = 'landlord'`)
 - **Move-In**: new tenancy commences (`submission_type = 'tenant'`). Requires a prior Move-Out OR property `create_status = 'vacant'`
