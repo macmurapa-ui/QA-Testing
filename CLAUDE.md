@@ -331,3 +331,128 @@ HTM differentiators:
 - Free software, no setup costs
 - ISO27001 + Cyber Essentials certified
 - 11+ years, 3,000+ agents
+
+---
+
+## 15. Helpthemove Partner API
+
+Base URL: `https://api.helpthemove.co.uk/partner/`
+Auth: Bearer token — `Authorization: Bearer API_TOKEN`
+Environments: staging, clone, production (separate tokens per env)
+
+### 15.1 What is a Move?
+- **Move-Out**: tenancy ends, property becomes empty (`submission_type = 'landlord'`)
+- **Move-In**: new tenancy commences (`submission_type = 'tenant'`). Requires a prior Move-Out OR property `create_status = 'vacant'`
+
+### 15.2 Data Hierarchy
+```
+Organisation → Branch(es) → Landlord(s) → Property(ies) → Moves
+```
+
+### 15.3 Searching
+All entities (Branches, Landlords, Properties, Moves) have HTM IDs. You can also search by your own `their_id`.
+
+---
+
+### 15.4 Branch Endpoints
+
+#### Create Branch — `POST /partner/branches`
+Required fields: `name`, `phone_number`, `business_type`, `data_processing_method`, `address_attributes` (address_1, town, county, post_code required; address_2 optional)
+
+Key optional fields: `their_id`, `commission_rate`, `vat_number`, `approx_move_outs_per_month`, `management_system`, `business_support_level`, `number_of_managed_properties`
+
+`business_type` enum: `housing_associations`, `letting_agent`, `residential_developer`, `landlord`, `build_to_rent`, `estate_agent`
+
+`management_system` enum: `no_software`, `10_ninety`, `agent_pro`, `alto`, `aquaint`, `arthur`, `cfp`, `dezrez`, `domus`, `estatesit`, `expert_agent`, `gnomen`, `jupix`, `let_mc`, `microsoft_dynamics_365`, `nbs`, `northgate`, `propco`, `qube_global`, `reapit`, `rentman`, `rentman_software_ltd`, `rentpro_ltd`, `sme_professional`, `teclet`, `thesaurus`, `universal`, `vault`, `vebra`, `veco`, `vtuk_gemini`, `webdadi`, `yardi`, `other`
+
+```bash
+curl -X POST 'https://api.helpthemove.co.uk/partner/branches' \
+  -H 'Authorization: Bearer API_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"branch": {"name": "Branch name", "phone_number": "07777777777", "their_id": "uuid", "business_type": "housing_associations", "data_processing_method": "self_managed", "address_attributes": {"address_1": "...", "town": "...", "county": "...", "post_code": "..."}}}'
+```
+
+Response includes `id`, `name`, `address`, and links for `landlord_search`, `add_landlord`, `property_search`.
+
+#### Get Branch — `GET /partner/branches/{id}`
+#### Search Branches — `GET /partner/branches?query=Name` or `?their_id=uuid`
+#### List All Branches — `GET /partner/branches`
+
+---
+
+### 15.5 Landlord Endpoints
+
+#### Get Landlord — `GET /partner/landlords/{id}`
+#### Search Landlords — `GET /partner/landlords?their_id=uuid`
+
+A landlord can be registered with more than one branch.
+
+#### Add Landlord — `POST /partner/branches/{branch_id}/landlords`
+Required: `first_name`, `last_name` (if `landlord_type = 'individual'`), `email`, `landlord_type` (`individual` or `company`), `email_type` (`variation_of_terms` or `explicit_opt_in`)
+
+Validations:
+- `their_id` must be unique per branch
+- Combination of email + first + last name must be unique per branch
+- `title` must be one of: `Mr`, `Mrs`, `Miss`, `Ms`, `Dr`, `Professor`, `Mx`, `Sir`, `Dame`, `Lord`, `Lady`, `Reverend`, `Other`
+
+`billing_address_type` options:
+- `agent_branch_address` — uses branch address (default)
+- `landlord_personal_address` — requires `address_attributes`
+- `alternative_branch_address` — requires `alternative_landlord_address_attributes` (includes `legal_entity`)
+
+#### Update Landlord — `PATCH /partner/landlords/{id}`
+Cannot update to nil: `email`, `first_name`, `last_name`, `landlord_type`, `email_type`
+
+---
+
+### 15.6 Property Endpoints
+
+#### Get Property — `GET /partner/properties/{id}`
+#### Search Properties — `GET /partner/properties?their_id=uuid`
+
+#### Add Property — `POST /partner/landlords/{landlord_id}/properties`
+Required: `create_status` (`vacant` or `tenanted`), `address_attributes`
+- `their_id` must be unique per branch
+
+#### Update Property — `PATCH /partner/properties/{id}`
+Updatable: `their_id`, `address_attributes`, `enabled` (false = mark as no longer managed, cancels incomplete moves, notifies energy partner)
+
+---
+
+### 15.7 Move Endpoints
+
+#### Make Move-Out — `POST /partner/properties/{property_id}/move_outs`
+Required: `submission_type: "landlord"`
+Optional: `fuel_type` (`single` or `dual`), meter serials/readings (electric, gas, water), `forwarding_address`, `notify_council`, `notify_water`, `notify_previous_energy`, `switch_date`, `their_id`
+
+#### Make Move-In — `POST /partner/properties/{property_id}/move_ins`
+Required: `submission_type: "tenant"`
+Optional: `fuel_type` (`single` or `dual`), meter data, `tenants_attributes` (array with `first_name`, `last_name`, `email`, `mobile`, `date_of_birth`, `student`, `title`, `landline`)
+
+#### Cancel Move — `DELETE /partner/moves/{id}`
+
+#### Get Single Move — `GET /partner/moves/{id}` (supports HTM id or `their_id`)
+
+#### Get Moves for Property — `GET /partner/properties/{property_id}/moves`
+
+#### Get Moves Requiring Meter Reads for Branch — `GET /partner/branches/{branch_id}/meter_reads_required`
+Returns moves with no meter reads or meter reads not within 3 days of `switch_date`.
+
+#### Update Meter Readings — `PATCH /partner/moves/{move_id}/meter_reads`
+At least one attribute required. Fields: `electric_meter_serial`, `mpan`, `gas_meter_serial`, `mprn`, `water_meter_serial`, `electric_meter_reading_1`, `electric_meter_reading_2`, `gas_meter_reading`, `water_meter_reading`
+
+---
+
+### 15.8 Error Handling
+Errors returned as:
+```json
+{"errors": ["First name can't be blank"]}
+```
+
+### 15.9 Recommended Move Workflow
+1. Find/create branch → get `branch_id`
+2. Find/create landlord under branch → get `landlord_id`
+3. Find/create property under landlord → get `property_id`
+4. POST move-out to property → get move `id`
+5. POST move-in to property (after move-out or if `create_status = 'vacant'`)
+6. Update meter readings as needed via `PATCH /partner/moves/{id}/meter_reads`
