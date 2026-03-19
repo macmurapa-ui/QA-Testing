@@ -334,7 +334,41 @@ HTM differentiators:
 
 ---
 
-## 15. Helpthemove Partner API
+## 15. Database Access (Lambda)
+
+Direct SQL access to all clone databases via AWS Lambda:
+
+**Endpoint:** `https://sn3uqixbqtsh5cbqjrjxxr4n740exasn.lambda-url.eu-west-2.on.aws/`
+**API Key:** `htm_clone_hO32TaCqnR3q1IrGUcRMrpCuBQbQEX6uEMD53axKb`
+
+```bash
+curl -X POST https://sn3uqixbqtsh5cbqjrjxxr4n740exasn.lambda-url.eu-west-2.on.aws/ \
+  -H "X-API-Key: htm_clone_hO32TaCqnR3q1IrGUcRMrpCuBQbQEX6uEMD53axKb" \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "YOUR SQL HERE"}'
+```
+
+### Available Schemas
+| Schema | Description |
+|--------|-------------|
+| `help_the_move_clone` | HTM Clone (Clone 1) |
+| `help_the_move_clone2` | Clone 2 |
+| `help_the_move_clone3` | Clone 3 |
+| `help_the_move_clone4` | Clone 4 |
+| `help_the_move_clone5` | Clone 5 |
+| `help_the_move_clone6` | Clone 6 |
+| `homelet_clone` | HomeLet Clone |
+| `canopy_clone` | Canopy Clone |
+| `vouch_clone` | Vouch Clone |
+| `letalliance_clone` | Let Alliance Clone |
+| `rentshield_clone` | Rent Shield Clone |
+| `reporting_clone` | Reporting Clone |
+
+> Always filter soft-deleted records: `WHERE deleted_at IS NULL`
+
+---
+
+## 16. Helpthemove Partner API
 
 Base URL: `https://api.helpthemove.co.uk/partner/`
 Auth: Bearer token — `Authorization: Bearer API_TOKEN`
@@ -350,21 +384,21 @@ Environments: staging, clone, production (separate tokens per env)
 | Clone 4 | `dHK5j5JLVvrOm1o1RXwvhpTk7LJLVdov` |
 | Clone 5 | `06aFIhD8CGejEJQ4ocSEnbfd2cbqyLsW` |
 
-### 15.1 What is a Move?
+### 16.1 What is a Move?
 - **Move-Out**: tenancy ends, property becomes empty (`submission_type = 'landlord'`)
 - **Move-In**: new tenancy commences (`submission_type = 'tenant'`). Requires a prior Move-Out OR property `create_status = 'vacant'`
 
-### 15.2 Data Hierarchy
+### 16.2 Data Hierarchy
 ```
 Organisation → Branch(es) → Landlord(s) → Property(ies) → Moves
 ```
 
-### 15.3 Searching
+### 16.3 Searching
 All entities (Branches, Landlords, Properties, Moves) have HTM IDs. You can also search by your own `their_id`.
 
 ---
 
-### 15.4 Branch Endpoints
+### 16.4 Branch Endpoints
 
 #### Create Branch — `POST /partner/branches`
 Required fields: `name`, `phone_number`, `business_type`, `data_processing_method`, `address_attributes` (address_1, town, county, post_code required; address_2 optional)
@@ -390,7 +424,7 @@ Response includes `id`, `name`, `address`, and links for `landlord_search`, `add
 
 ---
 
-### 15.5 Landlord Endpoints
+### 16.5 Landlord Endpoints
 
 #### Get Landlord — `GET /partner/landlords/{id}`
 #### Search Landlords — `GET /partner/landlords?their_id=uuid`
@@ -415,7 +449,7 @@ Cannot update to nil: `email`, `first_name`, `last_name`, `landlord_type`, `emai
 
 ---
 
-### 15.6 Property Endpoints
+### 16.6 Property Endpoints
 
 #### Get Property — `GET /partner/properties/{id}`
 #### Search Properties — `GET /partner/properties?their_id=uuid`
@@ -429,7 +463,7 @@ Updatable: `their_id`, `address_attributes`, `enabled` (false = mark as no longe
 
 ---
 
-### 15.7 Move Endpoints
+### 16.7 Move Endpoints
 
 #### Make Move-Out — `POST /partner/properties/{property_id}/move_outs`
 Required: `submission_type: "landlord"`
@@ -453,13 +487,13 @@ At least one attribute required. Fields: `electric_meter_serial`, `mpan`, `gas_m
 
 ---
 
-### 15.8 Error Handling
+### 16.8 Error Handling
 Errors returned as:
 ```json
 {"errors": ["First name can't be blank"]}
 ```
 
-### 15.9 Recommended Move Workflow
+### 16.9 Recommended Move Workflow
 1. Find/create branch → get `branch_id`
 2. Find/create landlord under branch → get `landlord_id`
 3. Find/create property under landlord → get `property_id`
