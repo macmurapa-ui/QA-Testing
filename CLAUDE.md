@@ -501,3 +501,184 @@ Errors returned as:
 4. POST move-out to property → get move `id`
 5. POST move-in to property (after move-out or if `create_status = 'vacant'`)
 6. Update meter readings as needed via `PATCH /partner/moves/{id}/meter_reads`
+
+---
+
+## 17. QA Test Scenarios
+
+### 17.1 Create Property — Let Alliance Clone
+**Endpoint:** `POST /partner/landlords/{landlord_id}/properties`
+**Environment:** Let Alliance Clone — `https://api-letalliance-clone.helpthemove.co.uk`
+**Auth:** `Authorization: Token token=1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa`
+**Test Landlord ID:** `33523`
+
+#### ✅ 1. Success — agent_branch_address (no billing address params)
+```bash
+curl --request POST \
+  "https://api-letalliance-clone.helpthemove.co.uk/partner/landlords/33523/properties" \
+  --header "Authorization: Token token=1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa" \
+  --header "Content-Type: application/json" \
+  --data-raw '{
+    "property": {
+      "create_status": "vacant",
+      "their_id": "P-AGENT-1",
+      "billing_address_type": "agent_branch_address",
+      "address_attributes": {
+        "address_1": "10 Demo Street",
+        "town": "Manchester",
+        "post_code": "M1 1AA"
+      }
+    }
+  }'
+```
+
+#### ✅ 2. Success — property_alternative_address (with billing address)
+```bash
+curl --request POST \
+  "https://api-letalliance-clone.helpthemove.co.uk/partner/landlords/33523/properties" \
+  --header "Authorization: Token token=1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa" \
+  --header "Content-Type: application/json" \
+  --data-raw '{
+    "property": {
+      "create_status": "vacant",
+      "their_id": "P-ALT-1",
+      "billing_address_type": "property_alternative_address",
+      "billing_address_attributes": {
+        "address_1": "99 Billing Road",
+        "town": "Manchester",
+        "post_code": "M2 2BB"
+      },
+      "address_attributes": {
+        "address_1": "11 Demo Street",
+        "town": "Manchester",
+        "post_code": "M1 1AB"
+      }
+    }
+  }'
+```
+
+#### ❌ 3. Error — missing required billing fields (no post_code)
+```bash
+curl --request POST \
+  "https://api-letalliance-clone.helpthemove.co.uk/partner/landlords/33523/properties" \
+  --header "Authorization: Token token=1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa" \
+  --header "Content-Type: application/json" \
+  --data-raw '{
+    "property": {
+      "create_status": "vacant",
+      "their_id": "P-ALT-INVALID",
+      "billing_address_type": "property_alternative_address",
+      "billing_address_attributes": {
+        "address_1": "99 Billing Road",
+        "town": "Manchester"
+      },
+      "address_attributes": {
+        "address_1": "12 Demo Street",
+        "town": "Manchester",
+        "post_code": "M1 1AC"
+      }
+    }
+  }'
+```
+
+#### ❌ 4. Error — invalid billing_address_type
+```bash
+curl --request POST \
+  "https://api-letalliance-clone.helpthemove.co.uk/partner/landlords/33523/properties" \
+  --header "Authorization: Token token=1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa" \
+  --header "Content-Type: application/json" \
+  --data-raw '{
+    "property": {
+      "create_status": "vacant",
+      "their_id": "P-BAD-TYPE",
+      "billing_address_type": "nope",
+      "address_attributes": {
+        "address_1": "13 Demo Street",
+        "town": "Manchester",
+        "post_code": "M1 1AD"
+      }
+    }
+  }'
+```
+
+---
+
+### 17.2 Update Billing — Let Alliance Clone
+**Endpoint:** `PATCH /partner/properties/{property_id}/billing`
+**Environment:** Let Alliance Clone — `https://api-letalliance-clone.helpthemove.co.uk`
+**Auth:** `Authorization: Token token=1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa`
+**Test Property ID:** `57931`
+
+#### ✅ 5. Success — set agent_branch_address
+```bash
+curl --request PATCH \
+  "https://api-letalliance-clone.helpthemove.co.uk/partner/properties/57931/billing" \
+  --header "Authorization: Token token=1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa" \
+  --header "Content-Type: application/json" \
+  --data-raw '{
+    "property": {
+      "billing_address_type": "agent_branch_address"
+    }
+  }'
+```
+
+#### ✅ 6. Success — set property_alternative_address
+```bash
+curl --request PATCH \
+  "https://api-letalliance-clone.helpthemove.co.uk/partner/properties/57931/billing" \
+  --header "Authorization: Token token=1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa" \
+  --header "Content-Type: application/json" \
+  --data-raw '{
+    "property": {
+      "billing_address_type": "property_alternative_address",
+      "billing_address_attributes": {
+        "address_1": "77 Billing Lane",
+        "town": "Manchester",
+        "post_code": "M3 3CC"
+      }
+    }
+  }'
+```
+
+#### ✅ 7. Success — remove override (null)
+```bash
+curl --request PATCH \
+  "https://api-letalliance-clone.helpthemove.co.uk/partner/properties/57931/billing" \
+  --header "Authorization: Token token=1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa" \
+  --header "Content-Type: application/json" \
+  --data-raw '{
+    "property": {
+      "billing_address_type": null
+    }
+  }'
+```
+
+#### ❌ 8. Error — missing billing fields (no post_code)
+```bash
+curl --request PATCH \
+  "https://api-letalliance-clone.helpthemove.co.uk/partner/properties/57931/billing" \
+  --header "Authorization: Token token=1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa" \
+  --header "Content-Type: application/json" \
+  --data-raw '{
+    "property": {
+      "billing_address_type": "property_alternative_address",
+      "billing_address_attributes": {
+        "address_1": "77 Billing Lane",
+        "town": "Manchester"
+      }
+    }
+  }'
+```
+
+#### ❌ 9. Error — invalid billing_address_type
+```bash
+curl --request PATCH \
+  "https://api-letalliance-clone.helpthemove.co.uk/partner/properties/57931/billing" \
+  --header "Authorization: Token token=1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa" \
+  --header "Content-Type: application/json" \
+  --data-raw '{
+    "property": {
+      "billing_address_type": "something_wrong"
+    }
+  }'
+```
