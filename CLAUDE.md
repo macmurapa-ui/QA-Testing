@@ -375,15 +375,15 @@ Auth: Bearer token — `Authorization: Bearer API_TOKEN`
 Environments: staging, clone, production (separate tokens per env)
 
 ### API Keys (Clone Environments)
-| Environment | API Key |
-|-------------|---------|
-| Homelet-Clone | `mO4b6QLfY9zryWt6w3O6aCmIiGyhxKPS` |
-| Clone 1 | `6frd3GwSoJ7KuCWR3MCvN3NpCX17hpzQ` |
-| Clone 2 | `FtlmkeTrh3RangyCBZ1MMfnYchMOEwCs` |
-| Clone 3 | `XL0xalQyEe6yTXvpKWNGdtNYKyOUeUFG` |
-| Clone 4 | `dHK5j5JLVvrOm1o1RXwvhpTk7LJLVdov` |
-| Clone 5 | `06aFIhD8CGejEJQ4ocSEnbfd2cbqyLsW` |
-| Let Alliance Clone | `1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa` — Base URL: `https://api-letalliance-clone.helpthemove.co.uk` — Auth: `Token token=<key>` |
+| Environment | Base URL | API Key |
+|-------------|----------|---------|
+| Homelet-Clone | `https://api-homelet-clone.helpthemove.co.uk` | `mO4b6QLfY9zryWt6w3O6aCmIiGyhxKPS` |
+| Clone 1 | `https://api-clone.helpthemove.co.uk` | `6frd3GwSoJ7KuCWR3MCvN3NpCX17hpzQ` |
+| Clone 2 | `https://api-clone2.helpthemove.co.uk` | `FtlmkeTrh3RangyCBZ1MMfnYchMOEwCs` |
+| Clone 3 | `https://api-clone3.helpthemove.co.uk` | `XL0xalQyEe6yTXvpKWNGdtNYKyOUeUFG` |
+| Clone 4 | `https://api-clone4.helpthemove.co.uk` | `dHK5j5JLVvrOm1o1RXwvhpTk7LJLVdov` |
+| Clone 5 | `https://api-clone5.helpthemove.co.uk` | `06aFIhD8CGejEJQ4ocSEnbfd2cbqyLsW` |
+| Let Alliance Clone | `https://api-letalliance-clone.helpthemove.co.uk` | `1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa` |
 
 ### 16.1 What is a Move?
 - **Move-Out**: tenancy ends, property becomes empty (`submission_type = 'landlord'`)
