@@ -383,6 +383,7 @@ Environments: staging, clone, production (separate tokens per env)
 | Clone 3 | `XL0xalQyEe6yTXvpKWNGdtNYKyOUeUFG` |
 | Clone 4 | `dHK5j5JLVvrOm1o1RXwvhpTk7LJLVdov` |
 | Clone 5 | `06aFIhD8CGejEJQ4ocSEnbfd2cbqyLsW` |
+| Let Alliance Clone | `1mNqkzLUvJLDvUOP08MrwvZTUo2S8cwa` — Base URL: `https://api-letalliance-clone.helpthemove.co.uk` — Auth: `Token token=<key>` |
 
 ### 16.1 What is a Move?
 - **Move-Out**: tenancy ends, property becomes empty (`submission_type = 'landlord'`)
