@@ -79,11 +79,15 @@ Before sending an invite, verify the intended email does not already exist:
 4. If no result → safe to proceed with that email
 
 ### Invite Flow (HTM Clone)
-1. Navigate to branch homepage: `/branches/:id/inspection`
-2. Branch nav → **Other** → **Invites**
-3. Click **New invite**
-4. Enter the email (determined after Existing User Check)
-5. Submit the form
+1. Run **Existing User Check** to confirm email is available
+2. Navigate directly to: `/branches/:id/invites`
+   - Note: clicking "Other" in the branch tab bar then "Invites" also works, but
+     scripting must use the direct URL to avoid the top-level nav "Other" intercepting
+3. Click **New invite** → navigates to `/branches/:id/invites/new`
+4. Enter the confirmed email address
+5. Branch is auto-selected in "Selected Branches" — verify it appears before submitting
+6. Click **Send Invite** (button id: `confirm_send_invite_btn`) — use JS click as button may be below fold
+7. Success: redirected to invites list showing the email with status **open**, Send Count **1**
 
 ### Test Runs Log
 | Run | Date | Clone | Task | Result |
@@ -91,6 +95,7 @@ Before sending an invite, verify the intended email does not already exist:
 | 007 | 18 Mar 2026 | HTM | Landlord Creation (Mac 8180326 / Mrs Arthur Lewis) | PASS |
 | 008 | 30 Mar 2026 | HTM | Branch Creation (Mac 1300326 / ID 2481) | PASS |
 | 009 | 30 Mar 2026 | HTM | Landlord Creation (Dr Noah Walker / ID 89869 on Branch 2481) | PASS |
+| 010 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
 
 ### Key Scripts
 | Script | Purpose |
@@ -99,6 +104,7 @@ Before sending an invite, verify the intended email does not already exist:
 | `htm_clone_007_inspect.js` | Inspects/verifies the created branch |
 | `htm_clone_008.js` | Creates a branch only (30 Mar 2026) |
 | `htm_clone_009.js` | Creates a landlord on an existing branch |
+| `htm_clone_010.js` | Existing User Check + invite creation on a branch |
 
 ---
 
