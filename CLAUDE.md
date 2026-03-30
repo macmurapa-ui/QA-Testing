@@ -89,6 +89,25 @@ Before sending an invite, verify the intended email does not already exist:
 6. Click **Send Invite** (button id: `confirm_send_invite_btn`) — use JS click as button may be below fold
 7. Success: redirected to invites list showing the email with status **open**, Send Count **1**
 
+### Invite Revoke Flow (HTM Clone)
+Revoke is available for any invite with status **open** on the branch Invites page.
+
+1. Navigate to `/branches/:id/invites`
+2. Locate the invite row with status **open**
+3. Click the **Revoke** button on that row (link with `data-method="delete"`)
+4. A browser `confirm()` dialog appears:
+   `"Are you sure you want to revoke the invite to <email>?"`
+5. Accept the dialog to confirm
+6. Success: invite status changes from **open** → **revoked**
+   - Row remains visible on the **All** tab with status **revoked**
+
+**Status tabs on Invites page:** All / Open / Used / Revoked
+
+**Scripting notes:**
+- Revoke button selector: `a[data-method="delete"]` within the matching table row
+- Handle confirmation with `page.on('dialog', async d => await d.accept())` — register this BEFORE clicking
+- Success check: page text contains `revoked`
+
 ### Test Runs Log
 | Run | Date | Clone | Task | Result |
 |-----|------|-------|------|--------|
@@ -96,6 +115,8 @@ Before sending an invite, verify the intended email does not already exist:
 | 008 | 30 Mar 2026 | HTM | Branch Creation (Mac 1300326 / ID 2481) | PASS |
 | 009 | 30 Mar 2026 | HTM | Landlord Creation (Dr Noah Walker / ID 89869 on Branch 2481) | PASS |
 | 010 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
+| 011 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
+| 012 | 30 Mar 2026 | HTM | Invite Revoke (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
 
 ### Key Scripts
 | Script | Purpose |
@@ -105,6 +126,8 @@ Before sending an invite, verify the intended email does not already exist:
 | `htm_clone_008.js` | Creates a branch only (30 Mar 2026) |
 | `htm_clone_009.js` | Creates a landlord on an existing branch |
 | `htm_clone_010.js` | Existing User Check + invite creation on a branch |
+| `htm_clone_011.js` | Existing User Check + invite creation (pre-revoke) |
+| `htm_clone_012.js` | Invite Revoke — revokes an open invite on a branch |
 
 ---
 
