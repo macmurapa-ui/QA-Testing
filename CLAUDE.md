@@ -117,6 +117,7 @@ Revoke is available for any invite with status **open** on the branch Invites pa
 | 010 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
 | 011 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
 | 012 | 30 Mar 2026 | HTM | Invite Revoke (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
+| 013 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
 
 ### Key Scripts
 | Script | Purpose |
@@ -128,6 +129,7 @@ Revoke is available for any invite with status **open** on the branch Invites pa
 | `htm_clone_010.js` | Existing User Check + invite creation on a branch |
 | `htm_clone_011.js` | Existing User Check + invite creation (pre-revoke) |
 | `htm_clone_012.js` | Invite Revoke — revokes an open invite on a branch |
+| `htm_clone_013.js` | Existing User Check + invite creation on a branch |
 
 ---
 
