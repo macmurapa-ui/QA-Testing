@@ -72,11 +72,21 @@ mac.murapa[N][DDMMYY]@helpthemove.co.uk
 - Before creating an invite, always run an **Existing User Check** (see below)
 
 ### Existing User Check
-Before sending an invite, verify the intended email does not already exist:
+Before sending an invite, verify the intended email does not already exist in **either** of two places:
+
+**Check 1 — Users page:**
 1. Top nav → **Users** → **All**
-2. Enter the intended email in the search box (e.g. `mac.murapa1300326@helpthemove.co.uk`)
-3. If a result is returned → email already exists; increment N and re-check
-4. If no result → safe to proceed with that email
+2. Enter the intended email in the search box
+3. If a result is returned → email already exists as a user; increment N and re-check
+
+**Check 2 — Branch Invites page:**
+1. Navigate to `/branches/:id/invites`
+2. Search for the intended email
+3. If the email appears (any status — open, used, or revoked) → increment N and re-check
+
+Only if **both** checks return no results is it safe to proceed with that email.
+
+**Why both checks are needed:** A revoked invite does not create a user record, so the Users page alone will show the email as available even though it already appears on the branch Invites page. Using the same email again would create a duplicate invite entry.
 
 ### Invite Flow (HTM Clone)
 1. Run **Existing User Check** to confirm email is available
@@ -118,6 +128,7 @@ Revoke is available for any invite with status **open** on the branch Invites pa
 | 011 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
 | 012 | 30 Mar 2026 | HTM | Invite Revoke (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
 | 013 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
+| 014 | 30 Mar 2026 | HTM | Dual Check (Users + Invites) + Invite Creation (mac.murapa2300326@helpthemove.co.uk on Branch 2481) | PASS |
 
 ### Key Scripts
 | Script | Purpose |
@@ -130,6 +141,7 @@ Revoke is available for any invite with status **open** on the branch Invites pa
 | `htm_clone_011.js` | Existing User Check + invite creation (pre-revoke) |
 | `htm_clone_012.js` | Invite Revoke — revokes an open invite on a branch |
 | `htm_clone_013.js` | Existing User Check + invite creation on a branch |
+| `htm_clone_014.js` | Dual check (Users + Invites pages) + invite creation — correct approach |
 
 ---
 
