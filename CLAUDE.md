@@ -73,6 +73,17 @@ Example: `claude/playwright-htm-clone-screenshot-TGWXg`
 | `htm_clone_007.js` | Creates a branch + landlord on HTM Clone |
 | `htm_clone_007_inspect.js` | Inspects/verifies the created branch |
 
+### Test Types (HTM Clone)
+Reusable test types that can be combined into test runs. Add new types here as the suite grows.
+
+| # | Test Type | Description |
+|---|-----------|-------------|
+| 1 | **Branch Creation** | Creates a new branch (app entity) on the HTM Clone using the `Mac N[DDMMYY]` naming convention with default form values |
+| 2 | **Landlord Creation** | Adds a landlord to an existing branch via `/branches/:id/landlords/new` with a randomly generated name |
+| 3 | **Existing User Check** | Dual availability check before inviting: **Check 1** — Users → All (searches for registered users); **Check 2** — Branch Invites page (catches revoked/used invites that don't show in Users) |
+| 4 | **Invite Creation** | Creates a user invite on a branch via `/branches/:id/invites/new` using the `mac.murapa[N][DDMMYY]@helpthemove.co.uk` naming convention |
+| 5 | **Invite Revoke** | Revokes an open invite on the branch Invites page, accepting the browser `confirm()` dialog to confirm |
+
 ---
 
 ## 2. What is Helpthemove (HTM)?
