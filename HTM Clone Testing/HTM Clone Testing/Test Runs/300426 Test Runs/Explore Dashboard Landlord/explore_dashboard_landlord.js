@@ -57,8 +57,11 @@ function dateSuffix() {
   await page.screenshot({ path: `${SS_DIR}/explore_02_landlords.png`, fullPage: false });
   console.log('Landlords page: ' + page.url());
 
-  // Click + (new landlord)
-  await page.click('a[href="/landlords/new"], a[href*="landlords/new"]');
+  // Click + (new landlord) — JS click as element may be below fold
+  await page.evaluate(() => {
+    const a = document.querySelector('a[href="/landlords/new"]');
+    if (a) a.click();
+  });
   await page.waitForLoadState('domcontentloaded', { timeout: 15000 });
   await page.waitForTimeout(800);
   await page.screenshot({ path: `${SS_DIR}/explore_03_new_landlord_form.png`, fullPage: false });

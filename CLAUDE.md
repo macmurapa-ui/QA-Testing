@@ -118,6 +118,33 @@ Revoke is available for any invite with status **open** on the branch Invites pa
 - Handle confirmation with `page.on('dialog', async d => await d.accept())` — register this BEFORE clicking
 - Success check: page text contains `revoked`
 
+### Landlord Creation in Dashboard (HTM Clone)
+Creates a landlord from the agent-facing dashboard by impersonating today's last branch.
+
+1. Find today's last `Mac N[DDMMYY]` branch (same logic as Impersonate Branch test)
+2. Impersonate the branch → redirected to `dashboard-clone.helpthemove.co.uk`
+3. Dismiss cookie consent banner if present
+4. Click **Landlords** → navigates to `/landlords`
+5. Click **+** (JS click — element may be below fold) → navigates to `/landlords/new`
+6. Fill the form:
+   - **Landlord Type**: Individual (default — do not change)
+   - **Title**: randomly picked from Mr/Mrs/Miss/Ms/Dr
+   - **First name**: randomly generated
+   - **Last Name**: randomly generated
+   - **Landlord Personal Email Address**: `firstname.lastname.[timestamp]@testlandlord.co.uk` — timestamp ensures uniqueness
+   - **Phone**: randomly generated 07XXXXXXXXX
+   - **Where would you like Landlord bills sent?**: Agent Branch Address (default — do not change)
+   - **Your landlord reference**: leave blank (default)
+7. Click **Create Landlord**
+8. Success: redirected away from `/landlords/new`
+
+**Form URL:** `https://dashboard-clone.helpthemove.co.uk/landlords/new`
+
+**Scripting notes:**
+- Navigate to `/landlords` first, then JS-click `a[href="/landlords/new"]` to reach the form
+- Submit button text: **Create Landlord** (`input[type="submit"]`)
+- Email uniqueness: use `Date.now()` timestamp in the email to prevent repeats across runs
+
 ### Impersonate Branch Flow (HTM Clone)
 Impersonation logs the admin in as the branch on the agent-facing dashboard.
 The test targets the **last branch created today** by the logged-in user (`Mac N[DDMMYY]`).
@@ -151,6 +178,7 @@ The test targets the **last branch created today** by the logged-in user (`Mac N
 | 015 | 16 Apr 2026 | HTM | Branch Creation (Mac 1160426 / ID 2494) | PASS |
 | 017 | 30 Apr 2026 | HTM | Branch Creation (Mac 1300426 / ID 2495) | PASS |
 | 018 | 30 Apr 2026 | HTM | Impersonate Branch (Mac 1300426 / ID 2495) | PASS |
+| 019 | 30 Apr 2026 | HTM | Landlord Creation in Dashboard (Dr Ruby Jackson / ID 92202 on Branch 2495) | PASS |
 
 ### Key Scripts
 | Script | Purpose |
@@ -167,6 +195,7 @@ The test targets the **last branch created today** by the logged-in user (`Mac N
 | `htm_clone_015.js` | Creates a branch only (16 Apr 2026) |
 | `htm_clone_017.js` | Creates a branch only (30 Apr 2026) |
 | `htm_clone_018.js` | Impersonate Branch — finds today's last branch, impersonates, stops |
+| `htm_clone_019.js` | Landlord Creation in Dashboard — impersonates branch, creates landlord via agent dashboard |
 
 ---
 
