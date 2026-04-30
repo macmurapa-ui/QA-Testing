@@ -118,6 +118,25 @@ Revoke is available for any invite with status **open** on the branch Invites pa
 - Handle confirmation with `page.on('dialog', async d => await d.accept())` — register this BEFORE clicking
 - Success check: page text contains `revoked`
 
+### Impersonate Branch Flow (HTM Clone)
+Impersonation logs the admin in as the branch on the agent-facing dashboard.
+The test targets the **last branch created today** by the logged-in user (`Mac N[DDMMYY]`).
+
+1. Search `/branches?q=[DDMMYY]` and find all `Mac N[DDMMYY]` matches
+2. Pick the last one (highest N) — this is today's most recently created branch
+3. Navigate to `/branches/:id/impersonation`
+4. Success: redirected to `dashboard-clone.helpthemove.co.uk` — the agent dashboard
+   - Page shows Landlords, Properties, Scheduled Move Outs, etc.
+   - **"Stop Impersonating"** link is visible in the nav
+5. Click **Stop Impersonating** (`/stop-impersonating`)
+6. Success: redirected back to `admin-clone.helpthemove.co.uk`
+
+**Scripting notes:**
+- Impersonate button has no text — target by href: `a[href*="/impersonation"]` within the branch header
+- Redirect goes to a different domain (`dashboard-clone`) — context must follow cross-domain navigation
+- Cookie consent banner may appear on first load of dashboard — dismiss with `button[type="submit"]:has-text("Accept")`
+- If no branch exists for today, the test should create one first (Branch Creation test)
+
 ### Test Runs Log
 | Run | Date | Clone | Task | Result |
 |-----|------|-------|------|--------|
