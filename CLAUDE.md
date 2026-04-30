@@ -150,10 +150,6 @@ Creates a property under an existing landlord from the agent-facing dashboard. T
 
 **IMPORTANT — Address uniqueness:** Each address can only be used **once across the entire clone** — not just per landlord. Attempting to create a property with an address already registered on the clone (under any landlord) will fail. Never reuse an address from a previous test run unless explicitly instructed to test the duplicate scenario.
 
-**Already used on clone (do not reuse):**
-- `Apartment 1, 113 Newton Street, Manchester, M1 1AE` — Property ID 642724 (Landlord 92202)
-- `Apartment 2, 113 Newton Street, Manchester, M1 1AE` — Property ID 642725 (Landlord 92202)
-
 **Test postcode:** `M1 1AE` — returns 20 addresses (Apartment 1–21, 113 Newton Street, Manchester)
 **Form URL:** `https://dashboard-clone.helpthemove.co.uk/landlords/:landlordId/properties/new`
 
