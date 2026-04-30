@@ -1,5 +1,5 @@
 # QA-Testing — Claude Context
-Last updated: 30 Mar 2026
+Last updated: 30 Apr 2026
 
 ---
 
@@ -145,6 +145,52 @@ Creates a landlord from the agent-facing dashboard by impersonating today's last
 - Submit button text: **Create Landlord** (`input[type="submit"]`)
 - Email uniqueness: use `Date.now()` timestamp in the email to prevent repeats across runs
 
+### Property Creation in Dashboard (HTM Clone)
+Creates a property under an existing landlord from the agent-facing dashboard.
+
+**Test postcode:** `M1 1AE` — returns 20 addresses (Apartment 1–21, 113 Newton Street, Manchester)
+**Standard test address:** `Apartment 1, 113 Newton Street, Manchester, M1 1AE`
+**Property status:** always specified by the user — either `vacant` or `tenanted` — **no default**
+
+**Flow:**
+1. Find today's last `Mac N[DDMMYY]` branch and impersonate it
+2. Navigate to `DASHBOARD_URL/landlords`
+3. Find the last created landlord (highest ID in the list)
+4. Navigate to that landlord's page → URL: `/landlords/:landlordId/properties`
+5. Click **Add Property** → navigates to `/landlords/:landlordId/properties/new`
+6. Fill the form:
+   - **Postcode**: enter `M1 1AE` in `input[name="property[address_attributes][post_code]"]`
+   - **Look Up**: click the lookup button → `#address-options` populates with Loqate results
+   - **Select address**: choose from `#address-options` dropdown (select by value or index)
+     - Address fields (`address_1`, `address_2`, `town`, `county`) auto-populate on selection
+   - **Property status**: check radio — `#property_create_status_vacant` or `#property_create_status_tenanted`
+   - **Landlord reference** (`property[their_id]`): leave blank (default)
+7. Click **Create Property** (`input[type="submit"][name="commit"]`)
+8. Success: redirected away from `/landlords/:landlordId/properties/new`
+
+**Form URL:** `https://dashboard-clone.helpthemove.co.uk/landlords/:landlordId/properties/new`
+
+**Form fields confirmed (from exploration):**
+| Field | Selector | Notes |
+|-------|----------|-------|
+| Postcode | `input[name="property[address_attributes][post_code]"]` | Enter before clicking lookup |
+| Address dropdown | `#address-options` | Populated by Loqate after lookup; select-multiple |
+| Address Line 1 | `input[name="property[address_attributes][address_1]"]` | Auto-fills after address selection |
+| Address Line 2 | `input[name="property[address_attributes][address_2]"]` | Auto-fills after address selection |
+| Town/City | `input[name="property[address_attributes][town]"]` | Auto-fills after address selection |
+| County | `input[name="property[address_attributes][county]"]` | Auto-fills after address selection |
+| Landlord reference | `input[name="property[their_id]"]` | Optional — leave blank |
+| Status: Vacant | `#property_create_status_vacant` | Radio, value=`vacant` |
+| Status: Tenanted | `#property_create_status_tenanted` | Radio, value=`tenanted` |
+| Submit | `input[type="submit"][name="commit"]` | Text: "Create Property" |
+
+**Scripting notes:**
+- `Add Property` is a link/button — use `page.$('a:has-text("Add Property"), button:has-text("Add Property")')` then click
+- After entering postcode and clicking lookup, wait 2000ms for `#address-options` to populate
+- Select address by index: `await page.locator('#address-options').selectOption({ index: 0 })`
+- Wait ~800ms after address selection for auto-populate of address fields
+- Success check: `!finalUrl.includes('/new')`
+
 ### Impersonate Branch Flow (HTM Clone)
 Impersonation logs the admin in as the branch on the agent-facing dashboard.
 The test targets the **last branch created today** by the logged-in user (`Mac N[DDMMYY]`).
@@ -196,6 +242,7 @@ The test targets the **last branch created today** by the logged-in user (`Mac N
 | `htm_clone_017.js` | Creates a branch only (30 Apr 2026) |
 | `htm_clone_018.js` | Impersonate Branch — finds today's last branch, impersonates, stops |
 | `htm_clone_019.js` | Landlord Creation in Dashboard — impersonates branch, creates landlord via agent dashboard |
+| `explore_property.js` | Exploratory — Property Creation form: postcode lookup, address dropdown, form fields (no submission) |
 
 ---
 
