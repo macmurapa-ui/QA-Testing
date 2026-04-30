@@ -1,5 +1,5 @@
 # QA-Testing — Claude Context
-Last updated: 19 Mar 2026
+Last updated: 30 Mar 2026
 
 ---
 
@@ -62,16 +62,88 @@ Example: `claude/playwright-htm-clone-screenshot-TGWXg`
 - Never push to `main` or `master` directly
 - Always push with: `git push -u origin <branch-name>`
 
+### HTM Clone — Invite Naming Convention
+Invite emails follow the same counter logic as branch names:
+```
+mac.murapa[N][DDMMYY]@helpthemove.co.uk
+```
+- `N` = sequential count of invites created today (auto-incremented)
+- Example: 1st invite on 30 Mar 2026 → `mac.murapa1300326@helpthemove.co.uk`
+- Before creating an invite, always run an **Existing User Check** (see below)
+
+### Existing User Check
+Before sending an invite, verify the intended email does not already exist in **either** of two places:
+
+**Check 1 — Users page:**
+1. Top nav → **Users** → **All**
+2. Enter the intended email in the search box
+3. If a result is returned → email already exists as a user; increment N and re-check
+
+**Check 2 — Branch Invites page:**
+1. Navigate to `/branches/:id/invites`
+2. Search for the intended email
+3. If the email appears (any status — open, used, or revoked) → increment N and re-check
+
+Only if **both** checks return no results is it safe to proceed with that email.
+
+**Why both checks are needed:** A revoked invite does not create a user record, so the Users page alone will show the email as available even though it already appears on the branch Invites page. Using the same email again would create a duplicate invite entry.
+
+### Invite Flow (HTM Clone)
+1. Run **Existing User Check** to confirm email is available
+2. Navigate directly to: `/branches/:id/invites`
+   - Note: clicking "Other" in the branch tab bar then "Invites" also works, but
+     scripting must use the direct URL to avoid the top-level nav "Other" intercepting
+3. Click **New invite** → navigates to `/branches/:id/invites/new`
+4. Enter the confirmed email address
+5. Branch is auto-selected in "Selected Branches" — verify it appears before submitting
+6. Click **Send Invite** (button id: `confirm_send_invite_btn`) — use JS click as button may be below fold
+7. Success: redirected to invites list showing the email with status **open**, Send Count **1**
+
+### Invite Revoke Flow (HTM Clone)
+Revoke is available for any invite with status **open** on the branch Invites page.
+
+1. Navigate to `/branches/:id/invites`
+2. Locate the invite row with status **open**
+3. Click the **Revoke** button on that row (link with `data-method="delete"`)
+4. A browser `confirm()` dialog appears:
+   `"Are you sure you want to revoke the invite to <email>?"`
+5. Accept the dialog to confirm
+6. Success: invite status changes from **open** → **revoked**
+   - Row remains visible on the **All** tab with status **revoked**
+
+**Status tabs on Invites page:** All / Open / Used / Revoked
+
+**Scripting notes:**
+- Revoke button selector: `a[data-method="delete"]` within the matching table row
+- Handle confirmation with `page.on('dialog', async d => await d.accept())` — register this BEFORE clicking
+- Success check: page text contains `revoked`
+
 ### Test Runs Log
 | Run | Date | Clone | Task | Result |
 |-----|------|-------|------|--------|
 | 007 | 18 Mar 2026 | HTM | Landlord Creation (Mac 8180326 / Mrs Arthur Lewis) | PASS |
+| 008 | 30 Mar 2026 | HTM | Branch Creation (Mac 1300326 / ID 2481) | PASS |
+| 009 | 30 Mar 2026 | HTM | Landlord Creation (Dr Noah Walker / ID 89869 on Branch 2481) | PASS |
+| 010 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
+| 011 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
+| 012 | 30 Mar 2026 | HTM | Invite Revoke (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
+| 013 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
+| 014 | 30 Mar 2026 | HTM | Dual Check (Users + Invites) + Invite Creation (mac.murapa2300326@helpthemove.co.uk on Branch 2481) | PASS |
+| 015 | 16 Apr 2026 | HTM | Branch Creation (Mac 1160426 / ID 2494) | PASS |
 
 ### Key Scripts
 | Script | Purpose |
 |--------|---------|
 | `htm_clone_007.js` | Creates a branch + landlord on HTM Clone |
 | `htm_clone_007_inspect.js` | Inspects/verifies the created branch |
+| `htm_clone_008.js` | Creates a branch only (30 Mar 2026) |
+| `htm_clone_009.js` | Creates a landlord on an existing branch |
+| `htm_clone_010.js` | Existing User Check + invite creation on a branch |
+| `htm_clone_011.js` | Existing User Check + invite creation (pre-revoke) |
+| `htm_clone_012.js` | Invite Revoke — revokes an open invite on a branch |
+| `htm_clone_013.js` | Existing User Check + invite creation on a branch |
+| `htm_clone_014.js` | Dual check (Users + Invites pages) + invite creation — correct approach |
+| `htm_clone_015.js` | Creates a branch only (16 Apr 2026) |
 
 ---
 
