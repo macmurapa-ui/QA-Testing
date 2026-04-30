@@ -149,6 +149,8 @@ The test targets the **last branch created today** by the logged-in user (`Mac N
 | 013 | 30 Mar 2026 | HTM | Existing User Check + Invite Creation (mac.murapa1300326@helpthemove.co.uk on Branch 2481) | PASS |
 | 014 | 30 Mar 2026 | HTM | Dual Check (Users + Invites) + Invite Creation (mac.murapa2300326@helpthemove.co.uk on Branch 2481) | PASS |
 | 015 | 16 Apr 2026 | HTM | Branch Creation (Mac 1160426 / ID 2494) | PASS |
+| 017 | 30 Apr 2026 | HTM | Branch Creation (Mac 1300426 / ID 2495) | PASS |
+| 018 | 30 Apr 2026 | HTM | Impersonate Branch (Mac 1300426 / ID 2495) | PASS |
 
 ### Key Scripts
 | Script | Purpose |
@@ -163,6 +165,8 @@ The test targets the **last branch created today** by the logged-in user (`Mac N
 | `htm_clone_013.js` | Existing User Check + invite creation on a branch |
 | `htm_clone_014.js` | Dual check (Users + Invites pages) + invite creation — correct approach |
 | `htm_clone_015.js` | Creates a branch only (16 Apr 2026) |
+| `htm_clone_017.js` | Creates a branch only (30 Apr 2026) |
+| `htm_clone_018.js` | Impersonate Branch — finds today's last branch, impersonates, stops |
 
 ---
 
