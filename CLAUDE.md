@@ -145,30 +145,23 @@ Creates a landlord from the agent-facing dashboard by impersonating today's last
 - Submit button text: **Create Landlord** (`input[type="submit"]`)
 - Email uniqueness: use `Date.now()` timestamp in the email to prevent repeats across runs
 
-### Property Creation in Dashboard (HTM Clone)
-Creates a property under an existing landlord from the agent-facing dashboard.
+### Create a Property (HTM Clone)
+Creates a property under an existing landlord from the agent-facing dashboard. Two types: **Vacant Property** and **Tenanted Property**.
 
 **Test postcode:** `M1 1AE` — returns 20 addresses (Apartment 1–21, 113 Newton Street, Manchester)
-**Standard test address:** `Apartment 1, 113 Newton Street, Manchester, M1 1AE`
-**Property status:** always specified by the user — either `vacant` or `tenanted` — **no default**
+**Form URL:** `https://dashboard-clone.helpthemove.co.uk/landlords/:landlordId/properties/new`
 
-**Flow:**
+**Common setup (both types):**
 1. Find today's last `Mac N[DDMMYY]` branch and impersonate it
 2. Navigate to `DASHBOARD_URL/landlords`
 3. Find the last created landlord (highest ID in the list)
 4. Navigate to that landlord's page → URL: `/landlords/:landlordId/properties`
 5. Click **Add Property** → navigates to `/landlords/:landlordId/properties/new`
-6. Fill the form:
-   - **Postcode**: enter `M1 1AE` in `input[name="property[address_attributes][post_code]"]`
-   - **Look Up**: click the lookup button → `#address-options` populates with Loqate results
-   - **Select address**: choose from `#address-options` dropdown (select by value or index)
-     - Address fields (`address_1`, `address_2`, `town`, `county`) auto-populate on selection
-   - **Property status**: check radio — `#property_create_status_vacant` or `#property_create_status_tenanted`
-   - **Landlord reference** (`property[their_id]`): leave blank (default)
-7. Click **Create Property** (`input[type="submit"][name="commit"]`)
-8. Success: redirected away from `/landlords/:landlordId/properties/new`
-
-**Form URL:** `https://dashboard-clone.helpthemove.co.uk/landlords/:landlordId/properties/new`
+6. Enter postcode `M1 1AE` → click **Look Up** → `#address-options` populates with Loqate results
+7. Select address from dropdown → address fields auto-populate
+8. Set property status radio (see type-specific steps below)
+9. Click **Create Property** (`input[type="submit"][name="commit"]`)
+10. Success: redirected away from `/landlords/:landlordId/properties/new`
 
 **Form fields confirmed (from exploration):**
 | Field | Selector | Notes |
@@ -187,10 +180,20 @@ Creates a property under an existing landlord from the agent-facing dashboard.
 **Scripting notes:**
 - `Add Property` is a link/button — use `page.$('a:has-text("Add Property"), button:has-text("Add Property")')` then click
 - After entering postcode and clicking lookup, wait 2000ms for `#address-options` to populate
-- Select address by index: `await page.locator('#address-options').selectOption({ index: 0 })`
+- Select address by label: `await page.locator('#address-options').selectOption({ label: '<full address string>' })`
 - Wait ~800ms after address selection for auto-populate of address fields
 - Status radio inputs have class `invisible` (hidden by `fancy-radio` CSS component) — use JS click: `page.evaluate(() => document.querySelector('#property_create_status_vacant').click())`
 - Success check: `!finalUrl.includes('/new')`
+
+#### Vacant Property
+- **Address used:** `Apartment 1, 113 Newton Street, Manchester, M1 1AE`
+- **Status radio:** `#property_create_status_vacant`
+- **Script:** `htm_clone_020.js`
+
+#### Tenanted Property
+- **Address used:** `Apartment 2, 113 Newton Street, Manchester, M1 1AE`
+- **Status radio:** `#property_create_status_tenanted`
+- **Script:** `htm_clone_021.js`
 
 ### Impersonate Branch Flow (HTM Clone)
 Impersonation logs the admin in as the branch on the agent-facing dashboard.
@@ -226,8 +229,8 @@ The test targets the **last branch created today** by the logged-in user (`Mac N
 | 017 | 30 Apr 2026 | HTM | Branch Creation (Mac 1300426 / ID 2495) | PASS |
 | 018 | 30 Apr 2026 | HTM | Impersonate Branch (Mac 1300426 / ID 2495) | PASS |
 | 019 | 30 Apr 2026 | HTM | Landlord Creation in Dashboard (Dr Ruby Jackson / ID 92202 on Branch 2495) | PASS |
-| 020 | 30 Apr 2026 | HTM | Property Creation — Vacant (Apartment 1, 113 Newton Street, M1 1AE / ID 642724 on Landlord 92202) | PASS |
-| 021 | 30 Apr 2026 | HTM | Property Creation — Tenanted (Apartment 2, 113 Newton Street, M1 1AE / ID 642725 on Landlord 92202) | PASS |
+| 020 | 30 Apr 2026 | HTM | Create a Property — Vacant (Apartment 1, 113 Newton Street, M1 1AE / ID 642724 on Landlord 92202) | PASS |
+| 021 | 30 Apr 2026 | HTM | Create a Property — Tenanted (Apartment 2, 113 Newton Street, M1 1AE / ID 642725 on Landlord 92202) | PASS |
 
 ### Key Scripts
 | Script | Purpose |
@@ -246,8 +249,8 @@ The test targets the **last branch created today** by the logged-in user (`Mac N
 | `htm_clone_018.js` | Impersonate Branch — finds today's last branch, impersonates, stops |
 | `htm_clone_019.js` | Landlord Creation in Dashboard — impersonates branch, creates landlord via agent dashboard |
 | `explore_property.js` | Exploratory — Property Creation form: postcode lookup, address dropdown, form fields (no submission) |
-| `htm_clone_020.js` | Property Creation — Vacant (Apartment 1, M1 1AE, under last created landlord) |
-| `htm_clone_021.js` | Property Creation — Tenanted (Apartment 2, M1 1AE, under last created landlord) |
+| `htm_clone_020.js` | Create a Property — Vacant (Apartment 1, M1 1AE, under last created landlord) |
+| `htm_clone_021.js` | Create a Property — Tenanted (Apartment 2, M1 1AE, under last created landlord) |
 
 ---
 
