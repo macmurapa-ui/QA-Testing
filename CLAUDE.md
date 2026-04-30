@@ -189,6 +189,7 @@ Creates a property under an existing landlord from the agent-facing dashboard.
 - After entering postcode and clicking lookup, wait 2000ms for `#address-options` to populate
 - Select address by index: `await page.locator('#address-options').selectOption({ index: 0 })`
 - Wait ~800ms after address selection for auto-populate of address fields
+- Status radio inputs have class `invisible` (hidden by `fancy-radio` CSS component) — use JS click: `page.evaluate(() => document.querySelector('#property_create_status_vacant').click())`
 - Success check: `!finalUrl.includes('/new')`
 
 ### Impersonate Branch Flow (HTM Clone)
@@ -225,6 +226,8 @@ The test targets the **last branch created today** by the logged-in user (`Mac N
 | 017 | 30 Apr 2026 | HTM | Branch Creation (Mac 1300426 / ID 2495) | PASS |
 | 018 | 30 Apr 2026 | HTM | Impersonate Branch (Mac 1300426 / ID 2495) | PASS |
 | 019 | 30 Apr 2026 | HTM | Landlord Creation in Dashboard (Dr Ruby Jackson / ID 92202 on Branch 2495) | PASS |
+| 020 | 30 Apr 2026 | HTM | Property Creation — Vacant (Apartment 1, 113 Newton Street, M1 1AE / ID 642724 on Landlord 92202) | PASS |
+| 021 | 30 Apr 2026 | HTM | Property Creation — Tenanted (Apartment 2, 113 Newton Street, M1 1AE / ID 642725 on Landlord 92202) | PASS |
 
 ### Key Scripts
 | Script | Purpose |
@@ -243,6 +246,8 @@ The test targets the **last branch created today** by the logged-in user (`Mac N
 | `htm_clone_018.js` | Impersonate Branch — finds today's last branch, impersonates, stops |
 | `htm_clone_019.js` | Landlord Creation in Dashboard — impersonates branch, creates landlord via agent dashboard |
 | `explore_property.js` | Exploratory — Property Creation form: postcode lookup, address dropdown, form fields (no submission) |
+| `htm_clone_020.js` | Property Creation — Vacant (Apartment 1, M1 1AE, under last created landlord) |
+| `htm_clone_021.js` | Property Creation — Tenanted (Apartment 2, M1 1AE, under last created landlord) |
 
 ---
 
