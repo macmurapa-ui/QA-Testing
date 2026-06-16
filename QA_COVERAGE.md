@@ -1,6 +1,6 @@
 # HTM QA Automation Coverage
 
-**Last updated:** 20 May 2026  
+**Last updated:** 16 Jun 2026  
 **QA Test Lead:** Mac Murapa  
 **Test environment:** HTM Clone (`admin-clone.helpthemove.co.uk`) | Agent Dashboard | Partner API
 
